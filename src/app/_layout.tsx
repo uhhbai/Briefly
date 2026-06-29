@@ -1,15 +1,25 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router';
+import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import { useColorScheme } from 'react-native';
 
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
-import AppTabs from '@/components/app-tabs';
+import { BriefProvider } from '@/store/BriefContext';
 
-export default function TabLayout() {
+export default function RootLayout() {
   const colorScheme = useColorScheme();
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <AnimatedSplashOverlay />
-      <AppTabs />
+      <BriefProvider>
+        <AnimatedSplashOverlay />
+        <Stack screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
+          <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="describe" options={{ animation: 'slide_from_bottom' }} />
+          <Stack.Screen name="builder" />
+          <Stack.Screen name="spec" />
+          <Stack.Screen name="bids" />
+        </Stack>
+        <StatusBar style="auto" />
+      </BriefProvider>
     </ThemeProvider>
   );
 }
