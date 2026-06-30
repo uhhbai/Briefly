@@ -203,7 +203,7 @@ export async function extractSpec(rawText: string): Promise<StructuredSpec> {
 
 function buildSummary(spec: StructuredSpec): string {
   const known = spec.fields.filter((f) => f.value).map((f) => `${f.label.toLowerCase()}: ${f.value}`);
-  const head = `${spec.category.emoji} ${spec.category.label} request.`;
+  const head = `${spec.category.label} request.`;
   if (!known.length) return `${head} ${spec.rawText}`;
   return `${head} ${known.join(' · ')}.`;
 }

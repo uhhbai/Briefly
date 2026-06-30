@@ -97,6 +97,13 @@ export type FollowUpQuestion = {
   placeholder?: string;
 };
 
+/** A booked job: the spec the buyer posted + the bid they accepted. */
+export type Order = {
+  id: string;
+  spec: StructuredSpec;
+  bid: Bid;
+};
+
 export type Bid = {
   id: string;
   vendorName: string;

@@ -2,163 +2,131 @@ import { router } from 'expo-router';
 import { StyleSheet, View, type DimensionValue } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
+import { Avatar } from '@/components/ui/Avatar';
 import { CoverImage } from '@/components/ui/CoverImage';
+import { Icon } from '@/components/ui/Icon';
 import { PressableScale } from '@/components/ui/PressableScale';
-import { Radius, Shadow, Spacing } from '@/constants/theme';
+import { Rating } from '@/components/ui/Rating';
+import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { formatPrice } from '@/lib/config';
 import type { Category, Service, Vendor } from '@/lib/types';
 
-const SCRIM: [string, string] = ['rgba(0,0,0,0.05)', 'rgba(0,0,0,0.62)'];
+// --- Category — numbered editorial row (Discover / Browse) -----------------
 
-// --- Category pill (horizontal scroller) ----------------------------------
-
-export function CategoryPill({ category, onPress }: { category: Category; onPress: () => void }) {
-  return (
-    <PressableScale onPress={onPress}>
-      <CoverImage uri={category.image} overlay={SCRIM} style={styles.catTile} align="space-between">
-        <View style={styles.catBadge}>
-          <ThemedText style={{ fontSize: 16 }}>{category.emoji}</ThemedText>
-        </View>
-        <ThemedText style={styles.catLabel} numberOfLines={2}>
-          {category.label.split(' &')[0]}
-        </ThemedText>
-      </CoverImage>
-    </PressableScale>
-  );
-}
-
-// --- Vendor card (carousel / list) ----------------------------------------
-
-export function VendorCard({ vendor, full }: { vendor: Vendor; full?: boolean }) {
+export function CategoryRow({ index, category, onPress }: { index: number; category: Category; onPress: () => void }) {
   const theme = useTheme();
   return (
-    <PressableScale
-      onPress={() => router.push({ pathname: '/vendor/[id]', params: { id: vendor.id } })}
-      style={full ? styles.vendorWrapFull : styles.vendorWrap}>
-      <View style={[styles.card, { backgroundColor: theme.card }, Shadow.card]}>
-        <CoverImage uri={vendor.image} overlay={SCRIM} style={styles.vendorBanner} align="flex-end">
-          <View style={styles.bannerRow}>
-            <View style={styles.glassAvatar}>
-              <ThemedText style={{ fontSize: 22 }}>{vendor.avatar}</ThemedText>
-            </View>
-            {vendor.verified && (
-              <View style={styles.verifiedPill}>
-                <ThemedText type="small" style={styles.verifiedText}>
-                  ✓ Verified
-                </ThemedText>
-              </View>
-            )}
-          </View>
-        </CoverImage>
-        <View style={styles.vendorBody}>
-          <ThemedText type="default" style={{ fontWeight: '700' }} numberOfLines={1}>
-            {vendor.name}
-          </ThemedText>
-          <ThemedText type="small" themeColor="textSecondary" numberOfLines={2} style={{ minHeight: 38 }}>
-            {vendor.tagline}
-          </ThemedText>
-          <View style={styles.metaRow}>
-            <View style={[styles.ratingPill, { backgroundColor: theme.backgroundSelected }]}>
-              <ThemedText type="small" style={{ color: theme.text, fontWeight: '700' }}>
-                ⭐ {vendor.rating.toFixed(1)}
-              </ThemedText>
-            </View>
-            <ThemedText type="small" themeColor="muted">
-              from {formatPrice(vendor.priceFrom)}
-            </ThemedText>
-          </View>
+    <PressableScale scaleTo={0.99} onPress={onPress}>
+      <View style={styles.catRow}>
+        <ThemedText type="eyebrow" themeColor="muted" style={styles.catIndex}>
+          {String(index + 1).padStart(2, '0')}
+        </ThemedText>
+        <View style={styles.catThumb}>
+          <CoverImage uri={category.image} style={styles.fill} />
         </View>
+        <ThemedText type="subtitle" style={{ flex: 1 }} numberOfLines={1}>
+          {category.label.split(' &')[0]}
+        </ThemedText>
+        <Icon name="arrow-up-right" size={20} color={theme.muted} />
       </View>
     </PressableScale>
   );
 }
 
-// --- Service card (grid) --------------------------------------------------
+// --- Vendor / maker -------------------------------------------------------
+
+export function VendorCard({ vendor, full }: { vendor: Vendor; full?: boolean }) {
+  const theme = useTheme();
+
+  if (full) {
+    return (
+      <PressableScale
+        scaleTo={0.99}
+        onPress={() => router.push({ pathname: '/vendor/[id]', params: { id: vendor.id } })}>
+        <View style={styles.makerRow}>
+          <Avatar uri={vendor.image} name={vendor.name} size={56} />
+          <View style={{ flex: 1, gap: 3 }}>
+            <View style={styles.nameLine}>
+              <ThemedText type="subtitle" numberOfLines={1} style={{ flexShrink: 1 }}>
+                {vendor.name}
+              </ThemedText>
+              {vendor.verified && <Icon name="check-circle" size={15} color={theme.tint} />}
+            </View>
+            <ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
+              {vendor.tagline}
+            </ThemedText>
+            <View style={styles.metaLine}>
+              <Rating value={vendor.rating} reviewCount={vendor.reviewCount} />
+              <ThemedText type="small" themeColor="muted">
+                ·  from {formatPrice(vendor.priceFrom)}
+              </ThemedText>
+            </View>
+          </View>
+        </View>
+      </PressableScale>
+    );
+  }
+
+  return (
+    <PressableScale
+      style={styles.makerCard}
+      onPress={() => router.push({ pathname: '/vendor/[id]', params: { id: vendor.id } })}>
+      <View style={styles.makerPhoto}>
+        <CoverImage uri={vendor.image} style={styles.fill} />
+      </View>
+      <View style={styles.nameLine}>
+        <ThemedText type="subtitle" numberOfLines={1} style={{ flexShrink: 1 }}>
+          {vendor.name}
+        </ThemedText>
+        {vendor.verified && <Icon name="check-circle" size={15} color={theme.tint} />}
+      </View>
+      <ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
+        {vendor.location} · {vendor.jobsDone} commissions
+      </ThemedText>
+      <Rating value={vendor.rating} reviewCount={vendor.reviewCount} />
+    </PressableScale>
+  );
+}
+
+// --- Service / listing ----------------------------------------------------
 
 export function ServiceCard({ service, width }: { service: Service; width?: DimensionValue }) {
   const theme = useTheme();
   return (
     <PressableScale
-      onPress={() => router.push({ pathname: '/service/[id]', params: { id: service.id } })}
-      style={width ? { width } : undefined}>
-      <View style={[styles.card, { backgroundColor: theme.card }, Shadow.card]}>
-        <CoverImage uri={service.image} overlay={SCRIM} style={styles.serviceBanner} align="space-between">
-          <View style={styles.serviceTop}>
-            <View style={styles.catBadge}>
-              <ThemedText style={{ fontSize: 14 }}>{service.emoji}</ThemedText>
-            </View>
-          </View>
-          <View style={styles.pricePill}>
-            <ThemedText type="small" style={{ color: '#fff', fontWeight: '800' }}>
-              from {formatPrice(service.priceFrom)}
-            </ThemedText>
-          </View>
-        </CoverImage>
-        <View style={styles.serviceBody}>
-          <ThemedText type="small" style={{ fontWeight: '700', minHeight: 38 }} numberOfLines={2}>
-            {service.title}
-          </ThemedText>
-          <ThemedText type="small" themeColor="muted">
-            ⭐ {service.rating.toFixed(1)} · {service.reviewCount} reviews
-          </ThemedText>
-        </View>
+      style={width ? { width } : undefined}
+      onPress={() => router.push({ pathname: '/service/[id]', params: { id: service.id } })}>
+      <View style={styles.servicePhoto}>
+        <CoverImage uri={service.image} style={styles.fill} />
+      </View>
+      <ThemedText type="subtitle" style={{ marginTop: Spacing.two }} numberOfLines={2}>
+        {service.title}
+      </ThemedText>
+      <View style={styles.serviceMeta}>
+        <Rating value={service.rating} reviewCount={service.reviewCount} />
+        <ThemedText type="smallBold" style={{ color: theme.text }}>
+          from {formatPrice(service.priceFrom)}
+        </ThemedText>
       </View>
     </PressableScale>
   );
 }
 
 const styles = StyleSheet.create({
-  card: { borderRadius: Radius.lg, overflow: 'hidden' },
+  fill: { flex: 1 },
 
-  catTile: { width: 130, height: 100, padding: Spacing.two, borderRadius: Radius.lg },
-  catBadge: {
-    width: 30,
-    height: 30,
-    borderRadius: Radius.pill,
-    backgroundColor: 'rgba(255,255,255,0.92)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  catLabel: { color: '#fff', fontWeight: '800', fontSize: 14 },
+  catRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three, paddingVertical: Spacing.three },
+  catIndex: { width: 22 },
+  catThumb: { width: 46, height: 46, borderRadius: Radius.sm, overflow: 'hidden' },
 
-  vendorWrap: { width: 230 },
-  vendorWrapFull: { width: '100%' },
-  vendorBanner: { height: 104 },
-  bannerRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    justifyContent: 'space-between',
-    padding: Spacing.two,
-  },
-  glassAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: Radius.pill,
-    backgroundColor: 'rgba(255,255,255,0.85)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  verifiedPill: {
-    backgroundColor: 'rgba(16,163,74,0.95)',
-    paddingHorizontal: Spacing.two,
-    paddingVertical: 3,
-    borderRadius: Radius.pill,
-  },
-  verifiedText: { color: '#fff', fontWeight: '700' },
-  vendorBody: { padding: Spacing.three, gap: Spacing.one },
-  metaRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: Spacing.one },
-  ratingPill: { paddingHorizontal: Spacing.two, paddingVertical: 2, borderRadius: Radius.pill },
+  makerRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three, paddingVertical: Spacing.three },
+  nameLine: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  metaLine: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two, marginTop: 2 },
 
-  serviceBanner: { height: 118 },
-  serviceTop: { flexDirection: 'row', justifyContent: 'flex-start', padding: Spacing.two },
-  pricePill: {
-    alignSelf: 'flex-start',
-    margin: Spacing.two,
-    backgroundColor: 'rgba(0,0,0,0.45)',
-    paddingHorizontal: Spacing.two,
-    paddingVertical: 4,
-    borderRadius: Radius.pill,
-  },
-  serviceBody: { padding: Spacing.two, gap: Spacing.one },
+  makerCard: { width: 232, gap: 4 },
+  makerPhoto: { width: '100%', height: 280, borderRadius: Radius.md, overflow: 'hidden', marginBottom: Spacing.two },
+
+  servicePhoto: { width: '100%', height: 200, borderRadius: Radius.md, overflow: 'hidden' },
+  serviceMeta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 6 },
 });

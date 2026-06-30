@@ -5,12 +5,16 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { ServiceCard } from '@/components/marketplace';
+import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
+import { Canvas } from '@/components/ui/Canvas';
 import { CoverImage } from '@/components/ui/CoverImage';
+import { Icon } from '@/components/ui/Icon';
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { getVendor, SERVICES } from '@/lib/catalog';
 import { formatPrice } from '@/lib/config';
+import { haptic } from '@/lib/haptics';
 
 export default function VendorDetail() {
   const theme = useTheme();
@@ -21,7 +25,7 @@ export default function VendorDetail() {
   if (!vendor) {
     return (
       <SafeAreaView style={[styles.safe, { backgroundColor: theme.background }]}>
-        <ThemedText style={{ padding: Spacing.four }}>Vendor not found.</ThemedText>
+        <ThemedText style={{ padding: Spacing.four }}>Maker not found.</ThemedText>
       </SafeAreaView>
     );
   }
@@ -29,62 +33,67 @@ export default function VendorDetail() {
   const stats = [
     { n: vendor.rating.toFixed(1), l: 'Rating' },
     { n: `${vendor.reviewCount}`, l: 'Reviews' },
-    { n: `${vendor.jobsDone}`, l: 'Jobs done' },
+    { n: `${vendor.jobsDone}`, l: 'Commissions' },
   ];
 
   return (
-    <View style={[styles.safe, { backgroundColor: theme.background }]}>
+    <Canvas>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
-        <CoverImage
-          uri={vendor.image}
-          overlay={['rgba(0,0,0,0.25)', 'rgba(0,0,0,0.72)']}
-          style={styles.hero}
-          align="space-between">
+        <CoverImage uri={vendor.image} overlay={['rgba(0,0,0,0.30)', 'rgba(0,0,0,0.10)']} style={styles.hero} align="flex-start">
           <SafeAreaView edges={['top']}>
-            <Pressable onPress={() => router.back()} hitSlop={12} style={styles.backBtn}>
-              <ThemedText style={{ color: '#fff', fontSize: 22 }}>‹</ThemedText>
+            <Pressable onPress={() => { haptic.light(); router.back(); }} hitSlop={12} style={styles.backBtn}>
+              <Icon name="arrow-left" size={20} color="#fff" />
             </Pressable>
           </SafeAreaView>
-          <View style={styles.heroContent}>
-            <View style={styles.heroAvatar}>
-              <ThemedText style={{ fontSize: 30 }}>{vendor.avatar}</ThemedText>
-            </View>
-            <ThemedText style={styles.heroName}>
-              {vendor.name} {vendor.verified ? '✓' : ''}
-            </ThemedText>
-            <ThemedText style={styles.heroLoc}>📍 {vendor.location}</ThemedText>
-          </View>
         </CoverImage>
 
         <View style={styles.body}>
+          {/* Identity */}
+          <Animated.View entering={FadeInDown.duration(340)} style={styles.identity}>
+            <View style={styles.avatarRing}>
+              <Avatar uri={vendor.image} name={vendor.name} size={72} />
+            </View>
+            <View style={styles.nameLine}>
+              <ThemedText type="title" style={{ fontSize: 26 }}>
+                {vendor.name}
+              </ThemedText>
+              {vendor.verified && <Icon name="check-circle" size={18} color={theme.tint} />}
+            </View>
+            <View style={styles.locRow}>
+              <Icon name="map-pin" size={13} color={theme.textSecondary} />
+              <ThemedText type="small" themeColor="textSecondary">
+                {vendor.location}
+              </ThemedText>
+            </View>
+          </Animated.View>
+
           {/* Stats */}
-          <Animated.View entering={FadeInDown.duration(350)} style={styles.stats}>
-            {stats.map((s) => (
-              <View key={s.l} style={[styles.statBox, { backgroundColor: theme.card, borderColor: theme.border }]}>
-                <ThemedText style={{ fontWeight: '800', fontSize: 18, color: theme.text }}>
-                  {s.l === 'Rating' ? `⭐ ${s.n}` : s.n}
-                </ThemedText>
-                <ThemedText type="small" themeColor="textSecondary">
+          <Animated.View entering={FadeInDown.delay(60).duration(340)} style={[styles.stats, { borderColor: theme.border }]}>
+            {stats.map((s, i) => (
+              <View key={s.l} style={styles.statBox}>
+                {i > 0 && <View style={[styles.vRule, { backgroundColor: theme.border }]} />}
+                <ThemedText type="subtitle">{s.n}</ThemedText>
+                <ThemedText type="eyebrow" themeColor="muted">
                   {s.l}
                 </ThemedText>
               </View>
             ))}
           </Animated.View>
 
-          <Animated.View entering={FadeInDown.delay(60).duration(350)}>
-            <ThemedText type="default" style={{ lineHeight: 22 }}>
+          <Animated.View entering={FadeInDown.delay(120).duration(340)}>
+            <ThemedText type="default" themeColor="textSecondary" style={{ lineHeight: 24 }}>
               {vendor.tagline}
             </ThemedText>
           </Animated.View>
 
           {services.length > 0 && (
-            <Animated.View entering={FadeInDown.delay(120).duration(350)} style={{ gap: Spacing.two }}>
-              <ThemedText type="default" style={{ fontWeight: '800', fontSize: 17 }}>
-                Services
+            <Animated.View entering={FadeInDown.delay(180).duration(340)} style={{ gap: Spacing.four, marginTop: Spacing.two }}>
+              <ThemedText type="eyebrow" themeColor="muted">
+                Selected work
               </ThemedText>
               <View style={styles.grid}>
                 {services.map((s) => (
-                  <View key={s.id} style={{ width: '48%' }}>
+                  <View key={s.id} style={{ width: '47%' }}>
                     <ServiceCard service={s} width="100%" />
                   </View>
                 ))}
@@ -97,7 +106,7 @@ export default function VendorDetail() {
       <View style={[styles.footer, { backgroundColor: theme.background, borderTopColor: theme.border }]}>
         <Button
           title={`Request a quote · from ${formatPrice(vendor.priceFrom)}`}
-          icon="✨"
+          iconRight="arrow-right"
           onPress={() =>
             router.push({
               pathname: '/describe',
@@ -106,50 +115,36 @@ export default function VendorDetail() {
           }
         />
       </View>
-    </View>
+    </Canvas>
   );
 }
 
 const styles = StyleSheet.create({
   safe: { flex: 1 },
   scroll: { paddingBottom: Spacing.five },
-  hero: { height: 260 },
+  hero: { height: 220 },
   backBtn: {
     width: 40,
     height: 40,
     borderRadius: Radius.pill,
-    backgroundColor: 'rgba(0,0,0,0.25)',
+    backgroundColor: 'rgba(0,0,0,0.32)',
     alignItems: 'center',
     justifyContent: 'center',
-    marginLeft: Spacing.three,
+    marginLeft: Spacing.gutter,
     marginTop: Spacing.two,
   },
-  heroContent: { alignItems: 'center', gap: 4, paddingBottom: Spacing.four },
-  heroAvatar: {
-    width: 64,
-    height: 64,
-    borderRadius: Radius.pill,
-    backgroundColor: 'rgba(255,255,255,0.9)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: Spacing.one,
-  },
-  heroName: { color: '#fff', fontSize: 22, fontWeight: '800' },
-  heroLoc: { color: 'rgba(255,255,255,0.85)', fontSize: 13 },
-  body: { padding: Spacing.three, gap: Spacing.three },
-  stats: { flexDirection: 'row', gap: Spacing.two },
-  statBox: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: Spacing.three,
-    borderRadius: Radius.lg,
-    borderWidth: StyleSheet.hairlineWidth,
-    gap: 2,
-  },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: Spacing.three },
+  body: { paddingHorizontal: Spacing.gutter, gap: Spacing.four },
+  identity: { alignItems: 'center', gap: Spacing.two, marginTop: -52 },
+  avatarRing: { borderRadius: Radius.pill, borderWidth: 3, borderColor: '#F4F0E7' },
+  nameLine: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: Spacing.two },
+  locRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  stats: { flexDirection: 'row', borderWidth: StyleSheet.hairlineWidth, borderRadius: Radius.lg, paddingVertical: Spacing.three },
+  statBox: { flex: 1, alignItems: 'center', gap: 2, position: 'relative' },
+  vRule: { position: 'absolute', left: 0, top: 4, bottom: 4, width: StyleSheet.hairlineWidth },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: Spacing.five },
   footer: {
     borderTopWidth: StyleSheet.hairlineWidth,
-    paddingHorizontal: Spacing.three,
+    paddingHorizontal: Spacing.gutter,
     paddingTop: Spacing.three,
     paddingBottom: Spacing.five,
   },

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Briefly app mark — ink tile, bone serif "B", sienna full-stop.
+     Export to PNG (e.g. 1024×1024) for the store icon. Swap the font to
+     Fraunces if available in your export tool for an exact match. -->
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1024" height="1024" rx="288" fill="#1C1A16"/>
+  <text x="486" y="512" fill="#ECE6DA" font-family="Fraunces, Georgia, 'Times New Roman', serif"
+        font-size="620" font-weight="600" text-anchor="middle" dominant-baseline="central">B</text>
+  <circle cx="678" cy="668" r="58" fill="#9C4226"/>
+</svg>

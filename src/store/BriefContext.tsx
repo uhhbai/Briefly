@@ -1,16 +1,16 @@
 /**
  * Holds the draft brief as the buyer moves through the flow:
- *   Describe → Builder (follow-ups) → Spec → Bids
+ *   Describe → Builder (follow-ups) → Spec → Bids → (book)
  *
- * A single React Context is plenty for this scope. If the app grows
- * (saved briefs, auth, server sync) this is the seam to swap for a real
- * store + Supabase, without touching the screens' call sites much.
+ * Accepted bids become persisted `orders` (the buyer's booked jobs), which
+ * survive starting a new brief. A single React Context is plenty for this
+ * scope; this is the seam to swap for a real store + Supabase later.
  */
 
 import { createContext, useContext, useMemo, useState, type ReactNode } from 'react';
 
 import { applyAnswers as applyAnswersImpl } from '@/lib/ai';
-import type { Bid, FollowUpQuestion, StructuredSpec } from '@/lib/types';
+import type { Bid, FollowUpQuestion, Order, StructuredSpec } from '@/lib/types';
 
 type BriefState = {
   rawText: string;
@@ -18,6 +18,8 @@ type BriefState = {
   followUps: FollowUpQuestion[];
   bids: Bid[];
   selectedBidId: string | null;
+  /** Booked jobs — persist across new briefs. */
+  orders: Order[];
 };
 
 type BriefContextValue = BriefState & {
@@ -27,16 +29,21 @@ type BriefContextValue = BriefState & {
   answerFollowUps: (answers: Record<string, string>) => void;
   setBids: (b: Bid[]) => void;
   selectBid: (id: string | null) => void;
+  /** Book the selected bid → creates an Order and clears the draft. Returns it. */
+  bookSelectedBid: () => Order | null;
+  /** Clear the draft only (keeps booked orders). */
   reset: () => void;
 };
 
-const initial: BriefState = {
+const emptyDraft = {
   rawText: '',
   spec: null,
   followUps: [],
   bids: [],
   selectedBidId: null,
-};
+} satisfies Omit<BriefState, 'orders'>;
+
+const initial: BriefState = { ...emptyDraft, orders: [] };
 
 const BriefContext = createContext<BriefContextValue | null>(null);
 
@@ -53,7 +60,17 @@ export function BriefProvider({ children }: { children: ReactNode }) {
         setState((s) => (s.spec ? { ...s, spec: applyAnswersImpl(s.spec, answers) } : s)),
       setBids: (bids) => setState((s) => ({ ...s, bids })),
       selectBid: (selectedBidId) => setState((s) => ({ ...s, selectedBidId })),
-      reset: () => setState(initial),
+      bookSelectedBid: () => {
+        let booked: Order | null = null;
+        setState((s) => {
+          const bid = s.bids.find((b) => b.id === s.selectedBidId);
+          if (!s.spec || !bid) return s;
+          booked = { id: `order_${s.orders.length + 1}_${bid.id}`, spec: s.spec, bid };
+          return { ...emptyDraft, orders: [booked, ...s.orders] };
+        });
+        return booked;
+      },
+      reset: () => setState((s) => ({ ...emptyDraft, orders: s.orders })),
     }),
     [state]
   );
