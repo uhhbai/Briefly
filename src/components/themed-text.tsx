@@ -1,10 +1,21 @@
-import { Platform, StyleSheet, Text, type TextProps } from 'react-native';
+import { StyleSheet, Text, type TextProps } from 'react-native';
 
-import { Fonts, ThemeColor } from '@/constants/theme';
+import { Type, ThemeColor } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 export type ThemedTextProps = TextProps & {
-  type?: 'default' | 'title' | 'small' | 'smallBold' | 'subtitle' | 'link' | 'linkPrimary' | 'code';
+  type?:
+    | 'default'
+    | 'display' // Fraunces — hero voice
+    | 'title' // Fraunces — screen / section titles
+    | 'subtitle' // Fraunces — smaller headings
+    | 'serifQuote' // Fraunces italic — pull quotes / vendor pitches
+    | 'small'
+    | 'smallBold'
+    | 'eyebrow' // Inter, tracked uppercase — editorial labels
+    | 'label'
+    | 'link'
+    | 'code';
   themeColor?: ThemeColor;
 };
 
@@ -15,14 +26,7 @@ export function ThemedText({ style, type = 'default', themeColor, ...rest }: The
     <Text
       style={[
         { color: theme[themeColor ?? 'text'] },
-        type === 'default' && styles.default,
-        type === 'title' && styles.title,
-        type === 'small' && styles.small,
-        type === 'smallBold' && styles.smallBold,
-        type === 'subtitle' && styles.subtitle,
-        type === 'link' && styles.link,
-        type === 'linkPrimary' && styles.linkPrimary,
-        type === 'code' && styles.code,
+        styles[type],
         style,
       ]}
       {...rest}
@@ -30,44 +34,17 @@ export function ThemedText({ style, type = 'default', themeColor, ...rest }: The
   );
 }
 
+// fontFamily carries the weight; we never set fontWeight over a custom face.
 const styles = StyleSheet.create({
-  small: {
-    fontSize: 14,
-    lineHeight: 20,
-    fontWeight: 500,
-  },
-  smallBold: {
-    fontSize: 14,
-    lineHeight: 20,
-    fontWeight: 700,
-  },
-  default: {
-    fontSize: 16,
-    lineHeight: 24,
-    fontWeight: 500,
-  },
-  title: {
-    fontSize: 48,
-    fontWeight: 600,
-    lineHeight: 52,
-  },
-  subtitle: {
-    fontSize: 32,
-    lineHeight: 44,
-    fontWeight: 600,
-  },
-  link: {
-    lineHeight: 30,
-    fontSize: 14,
-  },
-  linkPrimary: {
-    lineHeight: 30,
-    fontSize: 14,
-    color: '#3c87f7',
-  },
-  code: {
-    fontFamily: Fonts.mono,
-    fontWeight: Platform.select({ android: 700 }) ?? 500,
-    fontSize: 12,
-  },
+  display: { fontFamily: Type.serif, fontSize: 46, lineHeight: 48, letterSpacing: -0.8 },
+  title: { fontFamily: Type.serif, fontSize: 30, lineHeight: 36, letterSpacing: -0.4 },
+  subtitle: { fontFamily: Type.serif, fontSize: 22, lineHeight: 28, letterSpacing: -0.2 },
+  serifQuote: { fontFamily: Type.serifItalic, fontSize: 18, lineHeight: 27 },
+  default: { fontFamily: Type.sans, fontSize: 16, lineHeight: 24 },
+  small: { fontFamily: Type.sans, fontSize: 14, lineHeight: 20 },
+  smallBold: { fontFamily: Type.sansSemibold, fontSize: 13, lineHeight: 18 },
+  eyebrow: { fontFamily: Type.sansSemibold, fontSize: 11.5, lineHeight: 14, letterSpacing: 1.6, textTransform: 'uppercase' },
+  label: { fontFamily: Type.sansMedium, fontSize: 15, lineHeight: 20 },
+  link: { fontFamily: Type.sansSemibold, fontSize: 15, lineHeight: 20 },
+  code: { fontFamily: Type.sans, fontSize: 13, lineHeight: 18 },
 });

@@ -3,21 +3,25 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
+import { Canvas } from '@/components/ui/Canvas';
+import { Icon } from '@/components/ui/Icon';
 import { MaxContentWidth, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { haptic } from '@/lib/haptics';
 
 type Props = {
   children: React.ReactNode;
   title?: string;
+  /** Small tracked label shown above the title. */
+  eyebrow?: string;
   subtitle?: string;
   showBack?: boolean;
   /** Sticky content pinned to the bottom (e.g. a primary Button). */
   footer?: React.ReactNode;
-  /** Set false for screens that manage their own scrolling/layout. */
   scroll?: boolean;
 };
 
-export function Screen({ children, title, subtitle, showBack, footer, scroll = true }: Props) {
+export function Screen({ children, title, eyebrow, subtitle, showBack, footer, scroll = true }: Props) {
   const theme = useTheme();
 
   const header =
@@ -25,20 +29,27 @@ export function Screen({ children, title, subtitle, showBack, footer, scroll = t
       <View style={styles.header}>
         {showBack && (
           <Pressable
-            onPress={() => router.back()}
-            hitSlop={12}
+            onPress={() => {
+              haptic.light();
+              router.back();
+            }}
+            hitSlop={14}
             accessibilityRole="button"
-            accessibilityLabel="Go back">
-            <ThemedText style={{ fontSize: 26, color: theme.text }}>‹</ThemedText>
+            accessibilityLabel="Go back"
+            style={styles.back}>
+            <Icon name="arrow-left" size={22} color={theme.text} />
           </Pressable>
         )}
         {title && (
-          <View style={{ flex: 1 }}>
-            <ThemedText type="subtitle" style={styles.title}>
-              {title}
-            </ThemedText>
+          <View>
+            {eyebrow && (
+              <ThemedText type="eyebrow" themeColor="muted" style={{ marginBottom: Spacing.two }}>
+                {eyebrow}
+              </ThemedText>
+            )}
+            <ThemedText type="title">{title}</ThemedText>
             {subtitle ? (
-              <ThemedText type="small" themeColor="textSecondary">
+              <ThemedText type="default" themeColor="textSecondary" style={{ marginTop: Spacing.two }}>
                 {subtitle}
               </ThemedText>
             ) : null}
@@ -55,23 +66,25 @@ export function Screen({ children, title, subtitle, showBack, footer, scroll = t
   );
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: theme.background }]} edges={['top']}>
-      {scroll ? (
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}>
-          {body}
-        </ScrollView>
-      ) : (
-        body
-      )}
-      {footer ? (
-        <View style={[styles.footer, { backgroundColor: theme.background, borderTopColor: theme.border }]}>
-          <View style={styles.footerInner}>{footer}</View>
-        </View>
-      ) : null}
-    </SafeAreaView>
+    <Canvas>
+      <SafeAreaView style={styles.safe} edges={['top']}>
+        {scroll ? (
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}>
+            {body}
+          </ScrollView>
+        ) : (
+          body
+        )}
+        {footer ? (
+          <View style={[styles.footer, { backgroundColor: theme.background, borderTopColor: theme.border }]}>
+            <View style={styles.footerInner}>{footer}</View>
+          </View>
+        ) : null}
+      </SafeAreaView>
+    </Canvas>
   );
 }
 
@@ -81,21 +94,17 @@ const styles = StyleSheet.create({
   content: {
     width: '100%',
     maxWidth: MaxContentWidth,
-    paddingHorizontal: Spacing.three,
-    paddingTop: Spacing.three,
-    paddingBottom: Spacing.four,
-    gap: Spacing.three,
+    paddingHorizontal: Spacing.gutter,
+    paddingTop: Spacing.four,
+    paddingBottom: Spacing.five,
+    gap: Spacing.four,
     flex: 1,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.two,
-  },
-  title: { fontSize: 28, lineHeight: 34 },
+  header: { gap: Spacing.three },
+  back: { width: 40, height: 40, justifyContent: 'center', marginLeft: -8 },
   footer: {
     borderTopWidth: StyleSheet.hairlineWidth,
-    paddingHorizontal: Spacing.three,
+    paddingHorizontal: Spacing.gutter,
     paddingTop: Spacing.three,
     paddingBottom: Spacing.four,
     alignItems: 'center',

@@ -1,84 +1,86 @@
 import { router } from 'expo-router';
-import { useMemo } from 'react';
-import { Alert, Pressable, StyleSheet, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import { Pressable, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { ThemedText } from '@/components/themed-text';
+import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { Icon } from '@/components/ui/Icon';
+import { Rating } from '@/components/ui/Rating';
 import { Screen } from '@/components/ui/Screen';
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { formatPrice } from '@/lib/config';
+import { haptic } from '@/lib/haptics';
 import type { Bid } from '@/lib/types';
 import { useBrief } from '@/store/BriefContext';
 
 export default function BidsScreen() {
-  const theme = useTheme();
-  const { spec, bids, selectedBidId, selectBid, reset } = useBrief();
+  const { spec, bids, selectedBidId, selectBid, bookSelectedBid } = useBrief();
 
   const sorted = useMemo(() => [...bids].sort((a, b) => a.price - b.price), [bids]);
   const cheapestId = sorted[0]?.id;
-  const topRatedId = useMemo(
-    () => [...bids].sort((a, b) => b.rating - a.rating)[0]?.id,
-    [bids]
-  );
+  const topRatedId = useMemo(() => [...bids].sort((a, b) => b.rating - a.rating)[0]?.id, [bids]);
   const selected = bids.find((b) => b.id === selectedBidId) ?? null;
+  const [confirming, setConfirming] = useState(false);
 
-  function handleAccept() {
+  function openConfirm() {
     if (!selected) return;
-    Alert.alert(
-      `Accept ${selected.vendorName}?`,
-      `${formatPrice(selected.price)} · ready in ~${selected.etaDays} days.\n\nYour payment is held safely in escrow and only released when you confirm the job is done.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Confirm & fund escrow',
-          onPress: () =>
-            Alert.alert(
-              '🎉 Booked!',
-              `${selected.vendorName} has been notified and will start your job. You can chat and track milestones from “My Briefs”.`,
-              [
-                {
-                  text: 'Done',
-                  onPress: () => {
-                    reset();
-                    router.dismissAll();
-                  },
-                },
-              ]
-            ),
-        },
-      ]
-    );
+    haptic.medium();
+    setConfirming(true);
+  }
+
+  function confirmAccept() {
+    setConfirming(false);
+    const order = bookSelectedBid();
+    haptic.success();
+    router.dismissAll();
+    if (order) router.navigate('/briefs');
   }
 
   return (
     <Screen
       showBack
-      title="Compare bids"
+      eyebrow="The bids"
+      title="Compare offers"
       subtitle={`${bids.length} vendors responded${spec ? ` · ${spec.title}` : ''}`}
       footer={
         <Button
-          title={selected ? `Accept ${selected.vendorName} · ${formatPrice(selected.price)}` : 'Select a bid to continue'}
-          icon={selected ? '🤝' : undefined}
+          title={selected ? `Accept · ${formatPrice(selected.price)}` : 'Select a bid to continue'}
+          iconRight={selected ? 'arrow-right' : undefined}
           disabled={!selected}
-          onPress={handleAccept}
+          onPress={openConfirm}
         />
       }>
+      {selected && (
+        <ConfirmDialog
+          visible={confirming}
+          title={`Accept ${selected.vendorName}?`}
+          message={`${formatPrice(selected.price)} · ready in about ${selected.etaDays} days. Your payment is held in escrow and released only when you confirm the job is done.`}
+          confirmLabel="Confirm & fund escrow"
+          onConfirm={confirmAccept}
+          onCancel={() => setConfirming(false)}
+        />
+      )}
       {sorted.map((bid, i) => (
-        <Animated.View key={bid.id} entering={FadeInDown.delay(i * 80).duration(350)}>
+        <Animated.View key={bid.id} entering={FadeInDown.delay(i * 70).duration(340)}>
           <BidCard
             bid={bid}
             selected={bid.id === selectedBidId}
             isCheapest={bid.id === cheapestId}
             isTopRated={bid.id === topRatedId}
-            onPress={() => selectBid(bid.id)}
+            onPress={() => {
+              haptic.light();
+              selectBid(bid.id);
+            }}
           />
         </Animated.View>
       ))}
 
-      <ThemedText type="small" themeColor="muted" style={{ textAlign: 'center', marginTop: Spacing.one }}>
-        Tap a bid to select it. Payment is held in escrow until you’re happy.
+      <ThemedText type="small" themeColor="muted">
+        Tap a bid to select it. Payment stays in escrow until you’re satisfied.
       </ThemedText>
     </Screen>
   );
@@ -105,52 +107,47 @@ function BidCard({
         styles.card,
         {
           backgroundColor: theme.card,
-          borderColor: selected ? theme.tint : theme.border,
-          borderWidth: selected ? 2 : StyleSheet.hairlineWidth,
-          opacity: pressed ? 0.92 : 1,
+          borderColor: selected ? theme.text : theme.border,
+          borderWidth: selected ? 1.5 : StyleSheet.hairlineWidth,
+          opacity: pressed ? 0.9 : 1,
         },
       ]}>
-      {/* badges */}
       {(isCheapest || isTopRated) && (
         <View style={styles.badgeRow}>
           {isCheapest && (
-            <View style={[styles.badge, { backgroundColor: theme.successBg }]}>
-              <ThemedText type="small" style={{ color: theme.success, fontWeight: '700' }}>
-                💸 Lowest price
-              </ThemedText>
-            </View>
+            <ThemedText type="eyebrow" style={{ color: theme.tint }}>
+              Lowest price
+            </ThemedText>
           )}
+          {isCheapest && isTopRated && <ThemedText type="eyebrow" themeColor="muted">·</ThemedText>}
           {isTopRated && (
-            <View style={[styles.badge, { backgroundColor: theme.tintSoft }]}>
-              <ThemedText type="small" style={{ color: theme.tint, fontWeight: '700' }}>
-                ⭐ Top rated
-              </ThemedText>
-            </View>
+            <ThemedText type="eyebrow" themeColor="textSecondary">
+              Top rated
+            </ThemedText>
           )}
         </View>
       )}
 
       <View style={styles.header}>
         <View style={styles.vendor}>
-          <ThemedText style={{ fontSize: 30 }}>{bid.vendorAvatar}</ThemedText>
+          <Avatar name={bid.vendorName} size={46} />
           <View style={{ flex: 1 }}>
             <View style={styles.nameRow}>
-              <ThemedText type="default" style={{ fontWeight: '700' }} numberOfLines={1}>
+              <ThemedText type="subtitle" style={{ fontSize: 19, flexShrink: 1 }} numberOfLines={1}>
                 {bid.vendorName}
               </ThemedText>
-              {bid.verified && (
-                <ThemedText type="small" style={{ color: theme.tint }}>
-                  ✓ verified
-                </ThemedText>
-              )}
+              {bid.verified && <Icon name="check-circle" size={15} color={theme.tint} />}
             </View>
-            <ThemedText type="small" themeColor="textSecondary">
-              ⭐ {bid.rating.toFixed(1)} ({bid.reviewCount}) · {bid.distanceKm} km away
-            </ThemedText>
+            <View style={styles.metaRow}>
+              <Rating value={bid.rating} reviewCount={bid.reviewCount} />
+              <ThemedText type="small" themeColor="muted">
+                · {bid.distanceKm} km away
+              </ThemedText>
+            </View>
           </View>
         </View>
         <View style={{ alignItems: 'flex-end' }}>
-          <ThemedText style={{ fontSize: 22, fontWeight: '800', color: theme.text }}>
+          <ThemedText type="subtitle" style={{ fontSize: 22 }}>
             {formatPrice(bid.price)}
           </ThemedText>
           <ThemedText type="small" themeColor="textSecondary">
@@ -159,13 +156,14 @@ function BidCard({
         </View>
       </View>
 
-      <ThemedText type="small" style={{ color: theme.text }}>
+      <ThemedText type="serifQuote" themeColor="textSecondary">
         “{bid.message}”
       </ThemedText>
 
       <View style={styles.highlights}>
-        {bid.highlights.map((h) => (
-          <View key={h} style={[styles.tag, { backgroundColor: theme.backgroundSelected }]}>
+        {bid.highlights.map((h, i) => (
+          <View key={h} style={styles.highlight}>
+            {i > 0 && <View style={[styles.dot, { backgroundColor: theme.muted }]} />}
             <ThemedText type="small" themeColor="textSecondary">
               {h}
             </ThemedText>
@@ -177,12 +175,13 @@ function BidCard({
 }
 
 const styles = StyleSheet.create({
-  card: { borderRadius: Radius.lg, padding: Spacing.three, gap: Spacing.two },
-  badgeRow: { flexDirection: 'row', gap: Spacing.two },
-  badge: { paddingHorizontal: Spacing.two, paddingVertical: 3, borderRadius: Radius.pill },
+  card: { borderRadius: Radius.lg, padding: Spacing.four, gap: Spacing.three },
+  badgeRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: Spacing.two },
-  vendor: { flexDirection: 'row', gap: Spacing.two, flex: 1, alignItems: 'center' },
-  nameRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
-  highlights: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.one },
-  tag: { paddingHorizontal: Spacing.two, paddingVertical: 4, borderRadius: Radius.sm },
+  vendor: { flexDirection: 'row', gap: Spacing.three, flex: 1, alignItems: 'center' },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  metaRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two, marginTop: 3 },
+  highlights: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: Spacing.two },
+  highlight: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
+  dot: { width: 3, height: 3, borderRadius: 999 },
 });

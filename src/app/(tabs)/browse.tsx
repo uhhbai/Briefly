@@ -6,8 +6,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { ServiceCard, VendorCard } from '@/components/marketplace';
+import { Canvas } from '@/components/ui/Canvas';
 import { Chip } from '@/components/ui/Chip';
-import { Radius, Spacing } from '@/constants/theme';
+import { Divider } from '@/components/ui/Divider';
+import { Icon } from '@/components/ui/Icon';
+import { Radius, Spacing, Type } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { searchCatalog } from '@/lib/catalog';
 import { CATEGORIES } from '@/lib/config';
@@ -17,9 +20,7 @@ export default function BrowseScreen() {
   const theme = useTheme();
   const params = useLocalSearchParams<{ category?: string }>();
   const [query, setQuery] = useState('');
-  const [activeCat, setActiveCat] = useState<CategoryId | 'all'>(
-    (params.category as CategoryId) ?? 'all'
-  );
+  const [activeCat, setActiveCat] = useState<CategoryId | 'all'>((params.category as CategoryId) ?? 'all');
 
   const { vendors, services } = useMemo(() => {
     const base = searchCatalog(query);
@@ -34,32 +35,26 @@ export default function BrowseScreen() {
   const empty = vendors.length === 0 && services.length === 0;
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: theme.background }]} edges={['top']}>
+    <Canvas>
+      <SafeAreaView style={styles.safe} edges={['top']}>
       <View style={styles.headerWrap}>
-        <ThemedText type="subtitle" style={styles.title}>
-          Browse
-        </ThemedText>
-        {/* Search */}
+        <ThemedText type="title">Browse</ThemedText>
         <View style={[styles.search, { backgroundColor: theme.card, borderColor: theme.border }]}>
-          <ThemedText style={{ fontSize: 16 }}>🔎</ThemedText>
+          <Icon name="search" size={17} color={theme.muted} />
           <TextInput
             value={query}
             onChangeText={setQuery}
-            placeholder="Search services or vendors…"
+            placeholder="Search services or makers"
             placeholderTextColor={theme.muted}
-            style={[styles.searchInput, { color: theme.text }]}
+            style={[styles.searchInput, { color: theme.text, fontFamily: Type.sans }]}
           />
         </View>
-        {/* Category filters */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.filters}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filters}>
           <Chip label="All" selected={activeCat === 'all'} onPress={() => setActiveCat('all')} />
           {cats.map((c) => (
             <Chip
               key={c.id}
-              label={`${c.emoji} ${c.label.split(' &')[0]}`}
+              label={c.label.split(' &')[0]}
               selected={activeCat === c.id}
               onPress={() => setActiveCat(c.id)}
             />
@@ -70,27 +65,24 @@ export default function BrowseScreen() {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
         {empty ? (
           <View style={styles.emptyWrap}>
-            <ThemedText style={{ fontSize: 40 }}>🤷</ThemedText>
-            <ThemedText type="default" style={{ fontWeight: '700' }}>
+            <Icon name="search" size={28} color={theme.muted} />
+            <ThemedText type="subtitle" style={{ textAlign: 'center' }}>
               Nothing matches “{query}”
             </ThemedText>
-            <ThemedText type="small" themeColor="textSecondary" style={{ textAlign: 'center' }}>
-              Can’t find it? Describe exactly what you want and let vendors bid.
+            <ThemedText type="small" themeColor="textSecondary" style={{ textAlign: 'center', maxWidth: 280 }}>
+              Can’t find it? Describe exactly what you want and let makers bid for the work.
             </ThemedText>
           </View>
         ) : (
           <>
             {services.length > 0 && (
               <Animated.View layout={LinearTransition}>
-                <ThemedText type="default" style={styles.sectionTitle}>
-                  Services ({services.length})
+                <ThemedText type="eyebrow" themeColor="muted" style={styles.sectionTitle}>
+                  Listings · {services.length}
                 </ThemedText>
                 <View style={styles.grid}>
                   {services.map((s, i) => (
-                    <Animated.View
-                      key={s.id}
-                      entering={FadeInDown.delay(i * 40).duration(300)}
-                      style={{ width: '48%' }}>
+                    <Animated.View key={s.id} entering={FadeInDown.delay(i * 40).duration(300)} style={{ width: '47%' }}>
                       <ServiceCard service={s} width="100%" />
                     </Animated.View>
                   ))}
@@ -99,16 +91,14 @@ export default function BrowseScreen() {
             )}
 
             {vendors.length > 0 && (
-              <Animated.View layout={LinearTransition}>
-                <ThemedText type="default" style={styles.sectionTitle}>
-                  Vendors ({vendors.length})
+              <Animated.View layout={LinearTransition} style={{ marginTop: Spacing.section }}>
+                <ThemedText type="eyebrow" themeColor="muted" style={styles.sectionTitle}>
+                  Makers · {vendors.length}
                 </ThemedText>
-                <View style={styles.vendorList}>
+                <View>
                   {vendors.map((v, i) => (
-                    <Animated.View
-                      key={v.id}
-                      entering={FadeInDown.delay(i * 40).duration(300)}
-                      style={{ width: '100%' }}>
+                    <Animated.View key={v.id} entering={FadeInDown.delay(i * 40).duration(300)}>
+                      {i > 0 && <Divider />}
                       <VendorCard vendor={v} full />
                     </Animated.View>
                   ))}
@@ -118,14 +108,14 @@ export default function BrowseScreen() {
           </>
         )}
       </ScrollView>
-    </SafeAreaView>
+      </SafeAreaView>
+    </Canvas>
   );
 }
 
 const styles = StyleSheet.create({
   safe: { flex: 1 },
-  headerWrap: { paddingHorizontal: Spacing.three, paddingTop: Spacing.two, gap: Spacing.two },
-  title: { fontSize: 28, lineHeight: 34, fontWeight: '800' },
+  headerWrap: { paddingHorizontal: Spacing.gutter, paddingTop: Spacing.two, gap: Spacing.three },
   search: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -133,13 +123,12 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: Radius.md,
     paddingHorizontal: Spacing.three,
-    height: 48,
+    height: 50,
   },
   searchInput: { flex: 1, fontSize: 16 },
   filters: { gap: Spacing.two, paddingVertical: Spacing.one, paddingRight: Spacing.three },
-  scroll: { padding: Spacing.three, paddingBottom: Spacing.six, gap: Spacing.two },
-  sectionTitle: { fontWeight: '800', fontSize: 17, marginBottom: Spacing.two, marginTop: Spacing.two },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: Spacing.three },
-  vendorList: { gap: Spacing.three },
-  emptyWrap: { alignItems: 'center', gap: Spacing.two, paddingVertical: Spacing.six },
+  scroll: { paddingHorizontal: Spacing.gutter, paddingTop: Spacing.four, paddingBottom: Spacing.huge },
+  sectionTitle: { marginBottom: Spacing.three },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: Spacing.five },
+  emptyWrap: { alignItems: 'center', gap: Spacing.three, paddingVertical: Spacing.huge },
 });

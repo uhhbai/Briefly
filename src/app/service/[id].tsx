@@ -4,15 +4,21 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
+import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
+import { Canvas } from '@/components/ui/Canvas';
 import { CoverImage } from '@/components/ui/CoverImage';
+import { Divider } from '@/components/ui/Divider';
+import { Icon } from '@/components/ui/Icon';
 import { PressableScale } from '@/components/ui/PressableScale';
+import { Rating } from '@/components/ui/Rating';
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { getVendor, SERVICES } from '@/lib/catalog';
-import { formatPrice } from '@/lib/config';
+import { formatPrice, getCategory } from '@/lib/config';
+import { haptic } from '@/lib/haptics';
 
-const INCLUDED = ['Free consultation & measurements', 'Made-to-order to your spec', 'Delivery & setup', 'Escrow-protected payment'];
+const INCLUDED = ['Free consultation & measurements', 'Made to order, to your exact spec', 'Delivery & setup', 'Escrow-protected payment'];
 
 export default function ServiceDetail() {
   const theme = useTheme();
@@ -23,7 +29,7 @@ export default function ServiceDetail() {
   if (!service) {
     return (
       <SafeAreaView style={[styles.safe, { backgroundColor: theme.background }]}>
-        <ThemedText style={{ padding: Spacing.four }}>Service not found.</ThemedText>
+        <ThemedText style={{ padding: Spacing.four }}>Listing not found.</ThemedText>
       </SafeAreaView>
     );
   }
@@ -31,74 +37,64 @@ export default function ServiceDetail() {
   function requestQuote() {
     router.push({
       pathname: '/describe',
-      params: { prefill: `${service!.title} — similar to "${service!.title}" by ${vendor?.name ?? 'a vendor'}. My budget is around ${formatPrice(service!.priceFrom)}.` },
+      params: { prefill: `Something similar to “${service!.title}” by ${vendor?.name ?? 'a maker'}. My budget is around ${formatPrice(service!.priceFrom)}.` },
     });
   }
 
   return (
-    <View style={[styles.safe, { backgroundColor: theme.background }]}>
+    <Canvas>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
-        {/* Full-bleed photo hero */}
-        <CoverImage
-          uri={service.image}
-          overlay={['rgba(0,0,0,0.35)', 'rgba(0,0,0,0.15)']}
-          style={styles.hero}
-          align="space-between">
+        <CoverImage uri={service.image} overlay={['rgba(0,0,0,0.28)', 'transparent']} style={styles.hero} align="flex-start">
           <SafeAreaView edges={['top']}>
-            <Pressable onPress={() => router.back()} hitSlop={12} style={styles.backBtn}>
-              <ThemedText style={{ color: '#fff', fontSize: 22 }}>‹</ThemedText>
+            <Pressable onPress={() => { haptic.light(); router.back(); }} hitSlop={12} style={styles.backBtn}>
+              <Icon name="arrow-left" size={20} color="#fff" />
             </Pressable>
           </SafeAreaView>
-          <View style={styles.heroBadge}>
-            <ThemedText style={{ fontSize: 18 }}>{service.emoji}</ThemedText>
-          </View>
         </CoverImage>
 
         <View style={styles.body}>
-          <Animated.View entering={FadeInDown.duration(350)}>
-            <ThemedText type="subtitle" style={styles.title}>
-              {service.title}
+          <Animated.View entering={FadeInDown.duration(340)} style={{ gap: Spacing.three }}>
+            <ThemedText type="eyebrow" themeColor="muted">
+              {getCategory(service.categoryId).label}
             </ThemedText>
+            <ThemedText type="title">{service.title}</ThemedText>
             <View style={styles.metaRow}>
-              <ThemedText type="small" style={{ color: theme.text, fontWeight: '700' }}>
-                ⭐ {service.rating.toFixed(1)}
-              </ThemedText>
+              <Rating value={service.rating} reviewCount={service.reviewCount} size={14} />
               <ThemedText type="small" themeColor="textSecondary">
-                ({service.reviewCount} reviews) · ~{service.etaDays} days
+                · ready in ~{service.etaDays} days
               </ThemedText>
             </View>
           </Animated.View>
 
-          {/* Vendor row */}
           {vendor && (
-            <Animated.View entering={FadeInDown.delay(60).duration(350)}>
-              <PressableScale
-                scaleTo={0.98}
-                onPress={() => router.push({ pathname: '/vendor/[id]', params: { id: vendor.id } })}>
-                <View style={[styles.vendorRow, { backgroundColor: theme.card, borderColor: theme.border }]}>
-                  <ThemedText style={{ fontSize: 28 }}>{vendor.avatar}</ThemedText>
+            <Animated.View entering={FadeInDown.delay(60).duration(340)}>
+              <Divider style={{ marginVertical: Spacing.four }} />
+              <PressableScale scaleTo={0.99} onPress={() => router.push({ pathname: '/vendor/[id]', params: { id: vendor.id } })}>
+                <View style={styles.vendorRow}>
+                  <Avatar uri={vendor.image} name={vendor.name} size={48} />
                   <View style={{ flex: 1 }}>
-                    <ThemedText type="default" style={{ fontWeight: '700' }}>
-                      {vendor.name} {vendor.verified ? '✓' : ''}
-                    </ThemedText>
+                    <View style={styles.nameLine}>
+                      <ThemedText type="label">{vendor.name}</ThemedText>
+                      {vendor.verified && <Icon name="check-circle" size={14} color={theme.tint} />}
+                    </View>
                     <ThemedText type="small" themeColor="textSecondary">
-                      {vendor.location} · {vendor.jobsDone} jobs done
+                      {vendor.location} · {vendor.jobsDone} commissions
                     </ThemedText>
                   </View>
-                  <ThemedText style={{ color: theme.muted, fontSize: 20 }}>›</ThemedText>
+                  <Icon name="chevron-right" size={18} color={theme.muted} />
                 </View>
               </PressableScale>
+              <Divider style={{ marginVertical: Spacing.four }} />
             </Animated.View>
           )}
 
-          {/* What's included */}
-          <Animated.View entering={FadeInDown.delay(120).duration(350)} style={{ gap: Spacing.two }}>
-            <ThemedText type="default" style={{ fontWeight: '800', fontSize: 17 }}>
+          <Animated.View entering={FadeInDown.delay(120).duration(340)} style={{ gap: Spacing.three }}>
+            <ThemedText type="eyebrow" themeColor="muted">
               What’s included
             </ThemedText>
             {INCLUDED.map((item) => (
               <View key={item} style={styles.bullet}>
-                <ThemedText style={{ color: theme.success }}>✓</ThemedText>
+                <Icon name="check" size={17} color={theme.tint} />
                 <ThemedText type="default" style={{ flex: 1 }}>
                   {item}
                 </ThemedText>
@@ -106,73 +102,55 @@ export default function ServiceDetail() {
             ))}
           </Animated.View>
 
-          <Animated.View entering={FadeInDown.delay(180).duration(350)}>
-            <ThemedText type="small" themeColor="textSecondary" style={{ lineHeight: 21 }}>
-              This is a starting point. Tap below to describe your exact needs — {vendor?.name ?? 'vendors'} and
-              others will send tailored bids so you get the best price.
+          <Animated.View entering={FadeInDown.delay(180).duration(340)}>
+            <ThemedText type="default" themeColor="textSecondary" style={{ marginTop: Spacing.four, lineHeight: 24 }}>
+              This is a starting point. Describe your exact needs and {vendor?.name ?? 'makers'} — along with
+              others — will send tailored bids, so you get the right price.
             </ThemedText>
           </Animated.View>
         </View>
       </ScrollView>
 
-      {/* Sticky CTA */}
       <View style={[styles.footer, { backgroundColor: theme.background, borderTopColor: theme.border }]}>
         <View style={{ flex: 1 }}>
-          <ThemedText type="small" themeColor="textSecondary">
+          <ThemedText type="eyebrow" themeColor="muted">
             Starting from
           </ThemedText>
-          <ThemedText style={{ fontSize: 22, fontWeight: '800', color: theme.text }}>
+          <ThemedText type="subtitle" style={{ marginTop: 2 }}>
             {formatPrice(service.priceFrom)}
           </ThemedText>
         </View>
-        <Button title="Request bids" icon="✨" onPress={requestQuote} style={{ flex: 1.4 }} />
+        <Button title="Request bids" iconRight="arrow-right" onPress={requestQuote} style={{ flex: 1.3 }} />
       </View>
-    </View>
+    </Canvas>
   );
 }
 
 const styles = StyleSheet.create({
   safe: { flex: 1 },
   scroll: { paddingBottom: Spacing.five },
-  hero: { height: 250 },
+  hero: { height: 300 },
   backBtn: {
     width: 40,
     height: 40,
     borderRadius: Radius.pill,
-    backgroundColor: 'rgba(0,0,0,0.25)',
+    backgroundColor: 'rgba(0,0,0,0.32)',
     alignItems: 'center',
     justifyContent: 'center',
-    marginLeft: Spacing.three,
+    marginLeft: Spacing.gutter,
     marginTop: Spacing.two,
   },
-  heroBadge: {
-    width: 48,
-    height: 48,
-    borderRadius: Radius.pill,
-    backgroundColor: 'rgba(255,255,255,0.92)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginLeft: Spacing.three,
-    marginBottom: Spacing.three,
-  },
-  body: { padding: Spacing.three, gap: Spacing.three },
-  title: { fontSize: 26, lineHeight: 32, fontWeight: '800' },
-  metaRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two, marginTop: Spacing.one },
-  vendorRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.three,
-    padding: Spacing.three,
-    borderRadius: Radius.lg,
-    borderWidth: StyleSheet.hairlineWidth,
-  },
-  bullet: { flexDirection: 'row', gap: Spacing.two, alignItems: 'flex-start' },
+  body: { padding: Spacing.gutter },
+  metaRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
+  vendorRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three },
+  nameLine: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  bullet: { flexDirection: 'row', gap: Spacing.three, alignItems: 'center' },
   footer: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.three,
     borderTopWidth: StyleSheet.hairlineWidth,
-    paddingHorizontal: Spacing.three,
+    paddingHorizontal: Spacing.gutter,
     paddingTop: Spacing.three,
     paddingBottom: Spacing.five,
   },

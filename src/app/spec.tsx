@@ -4,7 +4,8 @@ import { StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { Button } from '@/components/ui/Button';
-import { Card } from '@/components/ui/Card';
+import { Divider } from '@/components/ui/Divider';
+import { Icon } from '@/components/ui/Icon';
 import { Screen } from '@/components/ui/Screen';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
@@ -18,7 +19,7 @@ export default function SpecScreen() {
 
   if (!spec) {
     return (
-      <Screen showBack title="No spec yet">
+      <Screen showBack title="No brief yet">
         <ThemedText themeColor="textSecondary">Start a new request from the home screen.</ThemedText>
       </Screen>
     );
@@ -40,70 +41,70 @@ export default function SpecScreen() {
   return (
     <Screen
       showBack
-      title="Your spec"
-      subtitle="This is what vendors will bid on"
+      eyebrow="Step 3 of 3"
+      title="Your brief"
+      subtitle="This is exactly what vendors will see and bid on."
       footer={
         <Button
-          title={loading ? 'Sending to vendors…' : 'Get bids from vendors'}
-          icon="📣"
+          title={loading ? 'Sending to vendors' : 'Get bids from vendors'}
+          iconRight={loading ? undefined : 'arrow-right'}
           loading={loading}
           onPress={handleGetBids}
         />
       }>
-      {/* Title + category */}
-      <Card accentColor={theme.tint}>
-        <View style={styles.rowBetween}>
-          <ThemedText type="small" themeColor="textSecondary">
-            {spec.category.emoji} {spec.category.label}
-          </ThemedText>
-        </View>
-        <ThemedText type="default" style={{ fontWeight: '700', fontSize: 19 }}>
-          {spec.title}
+      {/* Title block */}
+      <View style={{ gap: Spacing.two }}>
+        <ThemedText type="eyebrow" themeColor="muted">
+          {spec.category.label}
         </ThemedText>
-        <ThemedText type="small" themeColor="textSecondary">
+        <ThemedText type="title">{spec.title}</ThemedText>
+        <ThemedText type="default" themeColor="textSecondary">
           {spec.summary}
         </ThemedText>
-      </Card>
+      </View>
 
       {/* Extracted fields */}
-      <ThemedText type="smallBold" themeColor="textSecondary">
-        EXTRACTED DETAILS
-      </ThemedText>
-      <Card>
-        {spec.fields.map((f, i) => (
-          <View
-            key={f.key}
-            style={[
-              styles.fieldRow,
-              i < spec.fields.length - 1 && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.border },
-            ]}>
-            <ThemedText type="default" style={{ flex: 1 }}>
-              {f.emoji}  {f.label}
+      <View style={{ gap: Spacing.two }}>
+        <ThemedText type="eyebrow" themeColor="muted">
+          The details
+        </ThemedText>
+        <View>
+          {spec.fields.map((f, i) => (
+            <View key={f.key}>
+              {i > 0 && <Divider />}
+              <View style={styles.fieldRow}>
+                <ThemedText type="default" themeColor="textSecondary">
+                  {f.label}
+                </ThemedText>
+                <ThemedText type="label" style={{ color: f.value ? theme.text : theme.muted, textAlign: 'right', flexShrink: 1 }}>
+                  {f.value ?? 'Not specified'}
+                </ThemedText>
+              </View>
+            </View>
+          ))}
+        </View>
+      </View>
+
+      {/* Budget check */}
+      {sanity && (
+        <View style={[styles.sanity, { borderColor: theme.border }]}>
+          <Icon
+            name={sanity.realistic ? 'check-circle' : 'alert-triangle'}
+            size={18}
+            color={sanity.realistic ? theme.success : theme.warning}
+          />
+          <View style={{ flex: 1, gap: 3 }}>
+            <ThemedText type="smallBold" style={{ color: sanity.realistic ? theme.success : theme.warning }}>
+              {sanity.realistic ? 'Budget looks realistic' : 'Budget may be tight'}
             </ThemedText>
-            <ThemedText
-              type="default"
-              style={{ fontWeight: '600', color: f.value ? theme.text : theme.muted }}>
-              {f.value ?? 'Not specified'}
+            <ThemedText type="small" themeColor="textSecondary">
+              {sanity.note}
             </ThemedText>
           </View>
-        ))}
-      </Card>
-
-      {/* Budget sanity-check — the AI "wow" */}
-      {sanity && (
-        <Card
-          accentColor={sanity.realistic ? theme.success : theme.warning}
-          style={{ backgroundColor: sanity.realistic ? theme.successBg : theme.tintSoft }}>
-          <ThemedText type="smallBold" style={{ color: sanity.realistic ? theme.success : theme.warning }}>
-            {sanity.realistic ? '✓ Budget check' : '⚠ Budget check'}
-          </ThemedText>
-          <ThemedText type="small" style={{ color: theme.text }}>
-            {sanity.note}
-          </ThemedText>
-        </Card>
+        </View>
       )}
 
-      <ThemedText type="small" themeColor="muted" style={{ textAlign: 'center' }}>
+      <ThemedText type="small" themeColor="muted">
         Posting this brief is free. You only pay when you accept a bid.
       </ThemedText>
     </Screen>
@@ -111,12 +112,18 @@ export default function SpecScreen() {
 }
 
 const styles = StyleSheet.create({
-  rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   fieldRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: Spacing.two,
-    gap: Spacing.two,
+    paddingVertical: Spacing.three,
+    gap: Spacing.four,
+  },
+  sanity: {
+    flexDirection: 'row',
+    gap: Spacing.three,
+    padding: Spacing.four,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 12,
   },
 });

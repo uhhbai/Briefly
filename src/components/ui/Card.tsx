@@ -6,10 +6,11 @@ import { useTheme } from '@/hooks/use-theme';
 type Props = {
   children: React.ReactNode;
   style?: StyleProp<ViewStyle>;
-  /** Adds a coloured left border accent (e.g. for the "best price" card). */
+  /** A coloured left rule for emphasis (e.g. the budget note). Used sparingly. */
   accentColor?: string;
 };
 
+/** A quiet surface: raised bone with a hairline, no shadow. */
 export function Card({ children, style, accentColor }: Props) {
   const theme = useTheme();
   return (
@@ -17,7 +18,7 @@ export function Card({ children, style, accentColor }: Props) {
       style={[
         styles.card,
         { backgroundColor: theme.card, borderColor: theme.border },
-        accentColor ? { borderLeftWidth: 4, borderLeftColor: accentColor } : null,
+        accentColor ? { borderLeftWidth: 2, borderLeftColor: accentColor } : null,
         style,
       ]}>
       {children}
@@ -29,7 +30,7 @@ const styles = StyleSheet.create({
   card: {
     borderRadius: Radius.lg,
     borderWidth: StyleSheet.hairlineWidth,
-    padding: Spacing.three,
+    padding: Spacing.four,
     gap: Spacing.two,
   },
 });

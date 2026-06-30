@@ -43,6 +43,6 @@ export function CoverImage({ uri, overlay, children, style, align = 'flex-end' }
 }
 
 const styles = StyleSheet.create({
-  wrap: { overflow: 'hidden', backgroundColor: '#e5e7eb' },
+  wrap: { overflow: 'hidden', backgroundColor: '#E1DACB' },
   content: { flex: 1 },
 });
