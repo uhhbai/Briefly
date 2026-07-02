@@ -1,4 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
+import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -12,15 +13,28 @@ import { CoverImage } from '@/components/ui/CoverImage';
 import { Icon } from '@/components/ui/Icon';
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import { getVendor, SERVICES } from '@/lib/catalog';
+import { getVendor, loadVendorDetail, SERVICES } from '@/lib/catalog';
 import { formatPrice } from '@/lib/config';
 import { haptic } from '@/lib/haptics';
+import type { Service, Vendor } from '@/lib/types';
 
 export default function VendorDetail() {
   const theme = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const vendor = getVendor(id);
-  const services = SERVICES.filter((s) => s.vendorId === id);
+  const [vendor, setVendor] = useState<Vendor | null>(getVendor(id) ?? null);
+  const [services, setServices] = useState<Service[]>(SERVICES.filter((s) => s.vendorId === id));
+
+  useEffect(() => {
+    let alive = true;
+    loadVendorDetail(id).then((result) => {
+      if (!alive) return;
+      setVendor(result.vendor);
+      setServices(result.services);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [id]);
 
   if (!vendor) {
     return (

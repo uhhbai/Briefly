@@ -36,10 +36,10 @@ export function PressableScale({
       onPress={onPress}
       onPressIn={() => {
         if (haptics) haptic.light();
-        scale.value = withTiming(scaleTo, { duration: 90 });
+        scale.set(withTiming(scaleTo, { duration: 90 }));
       }}
       onPressOut={() => {
-        scale.value = withSpring(1, { damping: 12, stiffness: 220 });
+        scale.set(withSpring(1, { damping: 12, stiffness: 220 }));
       }}
       style={[animatedStyle, style]}>
       {children}

@@ -18,6 +18,7 @@ type BriefState = {
   followUps: FollowUpQuestion[];
   bids: Bid[];
   selectedBidId: string | null;
+  remoteBriefId: string | null;
   /** Booked jobs — persist across new briefs. */
   orders: Order[];
 };
@@ -29,6 +30,7 @@ type BriefContextValue = BriefState & {
   answerFollowUps: (answers: Record<string, string>) => void;
   setBids: (b: Bid[]) => void;
   selectBid: (id: string | null) => void;
+  setRemoteBriefId: (id: string | null) => void;
   /** Book the selected bid → creates an Order and clears the draft. Returns it. */
   bookSelectedBid: () => Order | null;
   /** Clear the draft only (keeps booked orders). */
@@ -41,6 +43,7 @@ const emptyDraft = {
   followUps: [],
   bids: [],
   selectedBidId: null,
+  remoteBriefId: null,
 } satisfies Omit<BriefState, 'orders'>;
 
 const initial: BriefState = { ...emptyDraft, orders: [] };
@@ -60,6 +63,7 @@ export function BriefProvider({ children }: { children: ReactNode }) {
         setState((s) => (s.spec ? { ...s, spec: applyAnswersImpl(s.spec, answers) } : s)),
       setBids: (bids) => setState((s) => ({ ...s, bids })),
       selectBid: (selectedBidId) => setState((s) => ({ ...s, selectedBidId })),
+      setRemoteBriefId: (remoteBriefId) => setState((s) => ({ ...s, remoteBriefId })),
       bookSelectedBid: () => {
         let booked: Order | null = null;
         setState((s) => {

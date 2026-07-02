@@ -36,14 +36,14 @@ export function ThemedText({ style, type = 'default', themeColor, ...rest }: The
 
 // fontFamily carries the weight; we never set fontWeight over a custom face.
 const styles = StyleSheet.create({
-  display: { fontFamily: Type.serif, fontSize: 46, lineHeight: 48, letterSpacing: -0.8 },
-  title: { fontFamily: Type.serif, fontSize: 30, lineHeight: 36, letterSpacing: -0.4 },
-  subtitle: { fontFamily: Type.serif, fontSize: 22, lineHeight: 28, letterSpacing: -0.2 },
+  display: { fontFamily: Type.serif, fontSize: 46, lineHeight: 48, letterSpacing: 0 },
+  title: { fontFamily: Type.serif, fontSize: 30, lineHeight: 36, letterSpacing: 0 },
+  subtitle: { fontFamily: Type.serif, fontSize: 22, lineHeight: 28, letterSpacing: 0 },
   serifQuote: { fontFamily: Type.serifItalic, fontSize: 18, lineHeight: 27 },
   default: { fontFamily: Type.sans, fontSize: 16, lineHeight: 24 },
   small: { fontFamily: Type.sans, fontSize: 14, lineHeight: 20 },
   smallBold: { fontFamily: Type.sansSemibold, fontSize: 13, lineHeight: 18 },
-  eyebrow: { fontFamily: Type.sansSemibold, fontSize: 11.5, lineHeight: 14, letterSpacing: 1.6, textTransform: 'uppercase' },
+  eyebrow: { fontFamily: Type.sansSemibold, fontSize: 11.5, lineHeight: 14, letterSpacing: 0, textTransform: 'uppercase' },
   label: { fontFamily: Type.sansMedium, fontSize: 15, lineHeight: 20 },
   link: { fontFamily: Type.sansSemibold, fontSize: 15, lineHeight: 20 },
   code: { fontFamily: Type.sans, fontSize: 13, lineHeight: 18 },

@@ -12,15 +12,16 @@ import { Icon } from '@/components/ui/Icon';
 import { KenBurns } from '@/components/ui/KenBurns';
 import { Logo } from '@/components/ui/Logo';
 import { Spacing, Type } from '@/constants/theme';
+import { useCatalog } from '@/hooks/use-catalog';
 import { useTheme } from '@/hooks/use-theme';
-import { featuredVendors, popularServices } from '@/lib/catalog';
 import { CATEGORIES } from '@/lib/config';
 import { HERO_IMAGE } from '@/lib/images';
 
 export default function DiscoverScreen() {
   const theme = useTheme();
-  const vendors = featuredVendors();
-  const services = popularServices();
+  const catalog = useCatalog();
+  const vendors = [...catalog.vendors].sort((a, b) => b.rating - a.rating).slice(0, 5);
+  const services = [...catalog.services].sort((a, b) => b.reviewCount - a.reviewCount);
   const cats = CATEGORIES.filter((c) => c.id !== 'other');
 
   return (
@@ -54,6 +55,20 @@ export default function DiscoverScreen() {
           <ThemedText type="default" themeColor="textSecondary" style={{ maxWidth: 380 }}>
             Describe what you want made. Vendors bid for the work. You choose the one.
           </ThemedText>
+          <View style={styles.signalRow}>
+            <View style={[styles.signalPill, { borderColor: theme.border, backgroundColor: theme.card }]}>
+              <Icon name="activity" size={14} color={theme.tint} />
+              <ThemedText type="smallBold" style={{ color: theme.text }}>
+                {catalog.loading ? 'Syncing catalog' : catalog.source === 'supabase' ? 'Live marketplace' : 'Demo marketplace'}
+              </ThemedText>
+            </View>
+            <View style={[styles.signalPill, { borderColor: theme.border, backgroundColor: theme.card }]}>
+              <Icon name="zap" size={14} color={theme.accent} />
+              <ThemedText type="smallBold" style={{ color: theme.text }}>
+                {vendors.length} makers ready
+              </ThemedText>
+            </View>
+          </View>
           <Button
             title="Start a brief"
             iconRight="arrow-right"
@@ -143,6 +158,16 @@ const styles = StyleSheet.create({
 
   hero: { marginTop: Spacing.section, gap: Spacing.three },
   heroTitle: { fontSize: 40, lineHeight: 44 },
+  signalRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two },
+  signalPill: {
+    minHeight: 34,
+    borderRadius: 999,
+    borderWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: Spacing.three,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two,
+  },
 
   heroImageWrap: { marginTop: Spacing.four },
   heroImage: { width: '100%', height: 230, borderRadius: 8 },

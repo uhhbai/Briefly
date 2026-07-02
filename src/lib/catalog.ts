@@ -6,6 +6,7 @@
  */
 
 import { img } from '@/lib/images';
+import { supabase } from '@/lib/supabase';
 import type { CategoryId, Service, Vendor } from '@/lib/types';
 
 export const VENDORS: Vendor[] = [
@@ -264,5 +265,138 @@ export function searchCatalog(query: string): { vendors: Vendor[]; services: Ser
       (v) => v.name.toLowerCase().includes(q) || v.tagline.toLowerCase().includes(q)
     ),
     services: SERVICES.filter((s) => s.title.toLowerCase().includes(q)),
+  };
+}
+
+type VendorRow = {
+  id: string;
+  name: string;
+  avatar: string | null;
+  category_id: CategoryId;
+  tagline: string;
+  rating: number;
+  review_count: number;
+  jobs_done: number;
+  verified: boolean;
+  price_from: number;
+  location: string;
+  gradient_from: string;
+  gradient_to: string;
+  image: string;
+};
+
+type ServiceRow = {
+  id: string;
+  title: string;
+  category_id: CategoryId;
+  vendor_id: string;
+  emoji: string | null;
+  price_from: number;
+  rating: number;
+  review_count: number;
+  eta_days: number;
+  gradient_from: string;
+  gradient_to: string;
+  image: string;
+};
+
+export type CatalogData = {
+  vendors: Vendor[];
+  services: Service[];
+  source: 'supabase' | 'local';
+};
+
+function mapVendor(row: VendorRow): Vendor {
+  return {
+    id: row.id,
+    name: row.name,
+    avatar: row.avatar ?? '',
+    categoryId: row.category_id,
+    tagline: row.tagline,
+    rating: Number(row.rating),
+    reviewCount: row.review_count,
+    jobsDone: row.jobs_done,
+    verified: row.verified,
+    priceFrom: row.price_from,
+    location: row.location,
+    gradient: [row.gradient_from, row.gradient_to],
+    image: row.image,
+  };
+}
+
+function mapService(row: ServiceRow): Service {
+  return {
+    id: row.id,
+    title: row.title,
+    categoryId: row.category_id,
+    vendorId: row.vendor_id,
+    emoji: row.emoji ?? '',
+    priceFrom: row.price_from,
+    rating: Number(row.rating),
+    reviewCount: row.review_count,
+    etaDays: row.eta_days,
+    gradient: [row.gradient_from, row.gradient_to],
+    image: row.image,
+  };
+}
+
+function localCatalog(): CatalogData {
+  return { vendors: VENDORS, services: SERVICES, source: 'local' };
+}
+
+export async function loadCatalog(): Promise<CatalogData> {
+  try {
+    const [vendorsResult, servicesResult] = await Promise.all([
+      supabase.from('vendors').select('*').order('rating', { ascending: false }),
+      supabase.from('services').select('*').order('review_count', { ascending: false }),
+    ]);
+
+    if (vendorsResult.error || servicesResult.error) return localCatalog();
+
+    const vendors = ((vendorsResult.data ?? []) as VendorRow[]).map(mapVendor);
+    const services = ((servicesResult.data ?? []) as ServiceRow[]).map(mapService);
+
+    if (!vendors.length || !services.length) return localCatalog();
+    return { vendors, services, source: 'supabase' };
+  } catch {
+    return localCatalog();
+  }
+}
+
+export function filterCatalog(
+  data: Pick<CatalogData, 'vendors' | 'services'>,
+  query: string,
+  categoryId: CategoryId | 'all'
+): { vendors: Vendor[]; services: Service[] } {
+  const q = query.trim().toLowerCase();
+  const vendors = data.vendors.filter((v) => {
+    const matchesQuery = !q || v.name.toLowerCase().includes(q) || v.tagline.toLowerCase().includes(q);
+    const matchesCategory = categoryId === 'all' || v.categoryId === categoryId;
+    return matchesQuery && matchesCategory;
+  });
+  const services = data.services.filter((s) => {
+    const matchesQuery = !q || s.title.toLowerCase().includes(q);
+    const matchesCategory = categoryId === 'all' || s.categoryId === categoryId;
+    return matchesQuery && matchesCategory;
+  });
+  return { vendors, services };
+}
+
+export async function loadVendorDetail(id: string): Promise<{ vendor: Vendor | null; services: Service[]; source: CatalogData['source'] }> {
+  const catalog = await loadCatalog();
+  return {
+    vendor: catalog.vendors.find((v) => v.id === id) ?? null,
+    services: catalog.services.filter((s) => s.vendorId === id),
+    source: catalog.source,
+  };
+}
+
+export async function loadServiceDetail(id: string): Promise<{ service: Service | null; vendor: Vendor | null; source: CatalogData['source'] }> {
+  const catalog = await loadCatalog();
+  const service = catalog.services.find((s) => s.id === id) ?? null;
+  return {
+    service,
+    vendor: service ? catalog.vendors.find((v) => v.id === service.vendorId) ?? null : null,
+    source: catalog.source,
   };
 }

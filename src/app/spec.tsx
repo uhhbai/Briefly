@@ -10,11 +10,12 @@ import { Screen } from '@/components/ui/Screen';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { generateBids } from '@/lib/ai';
+import { saveBriefWithBids } from '@/lib/briefsDb';
 import { useBrief } from '@/store/BriefContext';
 
 export default function SpecScreen() {
   const theme = useTheme();
-  const { spec, setBids } = useBrief();
+  const { spec, setBids, setRemoteBriefId } = useBrief();
   const [loading, setLoading] = useState(false);
 
   if (!spec) {
@@ -30,6 +31,8 @@ export default function SpecScreen() {
     try {
       const bids = await generateBids(spec!);
       setBids(bids);
+      const remoteBriefId = await saveBriefWithBids(spec!, bids);
+      setRemoteBriefId(remoteBriefId);
       router.push('/bids');
     } finally {
       setLoading(false);

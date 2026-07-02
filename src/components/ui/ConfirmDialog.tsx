@@ -12,6 +12,7 @@ type Props = {
   message?: string;
   confirmLabel?: string;
   cancelLabel?: string;
+  loading?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
 };
@@ -27,6 +28,7 @@ export function ConfirmDialog({
   message,
   confirmLabel = 'Confirm',
   cancelLabel = 'Cancel',
+  loading,
   onConfirm,
   onCancel,
 }: Props) {
@@ -50,8 +52,8 @@ export function ConfirmDialog({
               </ThemedText>
             ) : null}
             <View style={styles.actions}>
-              <Button title={confirmLabel} iconRight="arrow-right" onPress={onConfirm} />
-              <Button title={cancelLabel} variant="ghost" onPress={onCancel} />
+              <Button title={confirmLabel} iconRight="arrow-right" loading={loading} onPress={onConfirm} />
+              <Button title={cancelLabel} variant="ghost" disabled={loading} onPress={onCancel} />
             </View>
           </Animated.View>
         </Animated.View>

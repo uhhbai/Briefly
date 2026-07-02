@@ -29,7 +29,7 @@ export const CATEGORIES: Category[] = [
     label: 'Furniture & Carpentry',
     emoji: '🪑',
     example: 'A walnut coffee table for a 1.8m wall, hidden charging, under S$800',
-    gradient: ['#6366F1', '#8B5CF6'],
+    gradient: ['#6D5DF6', '#20C7B5'],
     image: img('1567538096630-e0c55bd6374c'),
   },
   {
@@ -37,7 +37,7 @@ export const CATEGORIES: Category[] = [
     label: 'Painting & Home Services',
     emoji: '🎨',
     example: 'Paint my 3-room HDF flat, neutral colours, done within 2 weeks',
-    gradient: ['#F59E0B', '#EF4444'],
+    gradient: ['#FF9A76', '#F4C95D'],
     image: img('1581539250439-c96689b516dd'),
   },
   {
@@ -45,7 +45,7 @@ export const CATEGORIES: Category[] = [
     label: 'Renovation & Built-ins',
     emoji: '🔨',
     example: 'Build a fitted wardrobe 2.4m wide with soft-close doors',
-    gradient: ['#0EA5E9', '#2563EB'],
+    gradient: ['#4FA3F7', '#7AE0C3'],
     image: img('1503602642458-232111445657'),
   },
   {
@@ -53,7 +53,7 @@ export const CATEGORIES: Category[] = [
     label: '3D Printing & Prototyping',
     emoji: '🖨️',
     example: 'Print 20 PLA enclosures for a small electronics gadget',
-    gradient: ['#10B981', '#059669'],
+    gradient: ['#2DD4BF', '#8BDF7C'],
     image: img('1562259949-e8e7689d7828'),
   },
   {
@@ -61,7 +61,7 @@ export const CATEGORIES: Category[] = [
     label: 'Apparel & Custom Goods',
     emoji: '🧵',
     example: '30 embroidered polo shirts with our company logo',
-    gradient: ['#EC4899', '#BE185D'],
+    gradient: ['#FF7AB6', '#7C8CF8'],
     image: img('1521791136064-7986c2920216'),
   },
   {
@@ -69,7 +69,7 @@ export const CATEGORIES: Category[] = [
     label: 'Something else',
     emoji: '✨',
     example: 'Describe anything you want made or done',
-    gradient: ['#64748B', '#475569'],
+    gradient: ['#8EA4FF', '#F8C96B'],
     image: img('1416879595882-3373a0480b5b'),
   },
 ];
