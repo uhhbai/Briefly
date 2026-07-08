@@ -15,6 +15,7 @@ import { Inter_600SemiBold } from '@expo-google-fonts/inter/600SemiBold';
 import { Inter_700Bold } from '@expo-google-fonts/inter/700Bold';
 
 import { AuthGate } from '@/components/auth/AuthGate';
+import { RoleRedirect } from '@/components/auth/RoleRedirect';
 import { useTheme } from '@/hooks/use-theme';
 import { AuthProvider } from '@/store/AuthContext';
 import { BriefProvider } from '@/store/BriefContext';
@@ -46,8 +47,10 @@ export default function RootLayout() {
       <AuthProvider>
         <AuthGate>
           <BriefProvider>
+            <RoleRedirect />
             <Stack screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
               <Stack.Screen name="(tabs)" />
+              <Stack.Screen name="vendor-dashboard" />
               <Stack.Screen name="describe" options={{ animation: 'slide_from_bottom' }} />
               <Stack.Screen name="builder" />
               <Stack.Screen name="spec" />

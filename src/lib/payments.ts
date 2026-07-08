@@ -12,7 +12,15 @@ export async function createCheckoutSession(orderId: string): Promise<Required<C
     body: { orderId },
   });
 
-  if (error) throw error;
+  if (error) {
+    throw new Error(
+      [
+        'Could not reach the payment Edge Function.',
+        'Make sure create-checkout-session is deployed to this Supabase project and your browser is using the corrected base Supabase URL.',
+        `Supabase said: ${error.message}`,
+      ].join(' ')
+    );
+  }
   if (!data?.url || !data.sessionId) {
     throw new Error('Stripe checkout did not return a payment link.');
   }

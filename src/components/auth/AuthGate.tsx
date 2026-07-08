@@ -11,7 +11,7 @@ import { Chip } from '@/components/ui/Chip';
 import { Logo, LogoMark } from '@/components/ui/Logo';
 import { TextField } from '@/components/ui/TextField';
 import { MaxContentWidth, Spacing } from '@/constants/theme';
-import { useAuth } from '@/store/AuthContext';
+import { useAuth, type SignupRole } from '@/store/AuthContext';
 
 type Mode = 'signIn' | 'signUp';
 
@@ -21,6 +21,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
+  const [signupRole, setSignupRole] = useState<SignupRole>('buyer');
   const [working, setWorking] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -46,7 +47,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
       if (mode === 'signIn') {
         await signIn(email, password);
       } else {
-        const signedIn = await signUp(email, password, displayName);
+        const signedIn = await signUp(email, password, displayName, signupRole);
         if (!signedIn) {
           setMessage('Account created. Check your email to confirm it, then log in here.');
           setMode('signIn');
@@ -86,14 +87,28 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
                   </View>
 
                   {mode === 'signUp' ? (
-                    <TextField
-                      label="Display name"
-                      value={displayName}
-                      onChangeText={setDisplayName}
-                      placeholder="Siraj"
-                      autoCapitalize="words"
-                      autoComplete="name"
-                    />
+                    <>
+                      <View style={styles.roleChooser}>
+                        <Chip
+                          label="I need work done"
+                          selected={signupRole === 'buyer'}
+                          onPress={() => setSignupRole('buyer')}
+                        />
+                        <Chip
+                          label="I am a vendor"
+                          selected={signupRole === 'vendor'}
+                          onPress={() => setSignupRole('vendor')}
+                        />
+                      </View>
+                      <TextField
+                        label={signupRole === 'vendor' ? 'Business or display name' : 'Display name'}
+                        value={displayName}
+                        onChangeText={setDisplayName}
+                        placeholder={signupRole === 'vendor' ? 'Briefly Studio' : 'Siraj'}
+                        autoCapitalize="words"
+                        autoComplete="name"
+                      />
+                    </>
                   ) : null}
 
                   <TextField
@@ -163,4 +178,5 @@ const styles = StyleSheet.create({
   form: { gap: Spacing.three },
   markWrap: { alignItems: 'flex-start' },
   modeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two },
+  roleChooser: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two },
 });

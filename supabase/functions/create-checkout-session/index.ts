@@ -8,9 +8,6 @@ const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
 const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 const fallbackAppUrl = Deno.env.get('APP_URL') ?? 'http://localhost:8081';
 
-const stripe = new Stripe(stripeSecretKey);
-const admin = createClient(supabaseUrl, serviceRoleKey);
-
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -20,6 +17,9 @@ Deno.serve(async (req) => {
     if (!stripeSecretKey || !serviceRoleKey || !supabaseUrl) {
       throw new Error('Payment secrets are not configured.');
     }
+
+    const stripe = new Stripe(stripeSecretKey);
+    const admin = createClient(supabaseUrl, serviceRoleKey);
 
     const token = req.headers.get('Authorization')?.replace('Bearer ', '');
     if (!token) {

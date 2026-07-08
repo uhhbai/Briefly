@@ -14,6 +14,7 @@ export type BrieflyProfile = {
 };
 
 type ProfilePatch = Partial<Pick<BrieflyProfile, 'display_name' | 'role' | 'avatar_url' | 'location'>>;
+export type SignupRole = 'buyer' | 'vendor';
 
 type AuthContextValue = {
   session: Session | null;
@@ -21,7 +22,7 @@ type AuthContextValue = {
   profile: BrieflyProfile | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, displayName: string) => Promise<boolean>;
+  signUp: (email: string, password: string, displayName: string, role: SignupRole) => Promise<boolean>;
   signOut: () => Promise<void>;
   updateProfile: (patch: ProfilePatch) => Promise<BrieflyProfile>;
   refreshProfile: () => Promise<void>;
@@ -35,12 +36,16 @@ function nameFromUser(user: User, fallback?: string) {
   return fallback?.trim() || metadataName.trim() || emailName;
 }
 
+function roleFromUser(user: User, fallback: SignupRole = 'buyer'): SignupRole {
+  return user.user_metadata?.role === 'vendor' ? 'vendor' : fallback;
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<BrieflyProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
-  async function ensureProfile(user: User | null, displayName?: string) {
+  async function ensureProfile(user: User | null, displayName?: string, role?: SignupRole) {
     if (!user) {
       setProfile(null);
       return null;
@@ -63,6 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .insert({
         id: user.id,
         display_name: nameFromUser(user, displayName),
+        role: role ?? roleFromUser(user),
         location: 'Singapore',
       })
       .select('id, display_name, role, avatar_url, location, created_at, updated_at')
@@ -110,15 +116,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSession(data.session);
         await ensureProfile(data.user);
       },
-      signUp: async (email, password, displayName) => {
+      signUp: async (email, password, displayName, role) => {
         const { data, error } = await supabase.auth.signUp({
           email: email.trim(),
           password,
-          options: { data: { display_name: displayName.trim() } },
+          options: { data: { display_name: displayName.trim(), role } },
         });
         if (error) throw error;
         setSession(data.session);
-        if (data.user && data.session) await ensureProfile(data.user, displayName);
+        if (data.user && data.session) await ensureProfile(data.user, displayName, role);
         return !!data.session;
       },
       signOut: async () => {

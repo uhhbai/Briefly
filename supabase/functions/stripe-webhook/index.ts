@@ -8,9 +8,6 @@ const webhookSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET') ?? '';
 const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
 const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 
-const stripe = new Stripe(stripeSecretKey);
-const admin = createClient(supabaseUrl, serviceRoleKey);
-
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -20,6 +17,9 @@ Deno.serve(async (req) => {
     if (!stripeSecretKey || !serviceRoleKey || !supabaseUrl || !webhookSecret) {
       throw new Error('Webhook secrets are not configured.');
     }
+
+    const stripe = new Stripe(stripeSecretKey);
+    const admin = createClient(supabaseUrl, serviceRoleKey);
 
     const signature = req.headers.get('stripe-signature');
     if (!signature) {
