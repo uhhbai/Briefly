@@ -16,6 +16,7 @@ import { Inter_700Bold } from '@expo-google-fonts/inter/700Bold';
 
 import { useTheme } from '@/hooks/use-theme';
 import { BriefProvider } from '@/store/BriefContext';
+import { SessionProvider } from '@/store/SessionProvider';
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
@@ -41,7 +42,8 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider value={navTheme}>
-      <BriefProvider>
+      <SessionProvider>
+        <BriefProvider>
         <Stack screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="describe" options={{ animation: 'slide_from_bottom' }} />
@@ -50,7 +52,8 @@ export default function RootLayout() {
           <Stack.Screen name="bids" />
         </Stack>
         <StatusBar style="auto" />
-      </BriefProvider>
+        </BriefProvider>
+      </SessionProvider>
     </ThemeProvider>
   );
 }
