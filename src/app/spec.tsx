@@ -33,7 +33,7 @@ export default function SpecScreen() {
       setBids(bids);
       const remoteBriefId = await saveBriefWithBids(spec!, bids);
       setRemoteBriefId(remoteBriefId);
-      router.push('/bids');
+      router.replace('/brief-posted');
     } finally {
       setLoading(false);
     }

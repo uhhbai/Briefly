@@ -8,11 +8,12 @@ export function RoleRedirect() {
 
   if (loading || !profile) return null;
 
-  if (profile.role === 'vendor' && pathname !== '/vendor-dashboard') {
+  const isVendorAllowed = pathname === '/vendor-dashboard' || pathname === '/account/settings';
+  if (profile.role === 'vendor' && !isVendorAllowed) {
     return <Redirect href="/vendor-dashboard" />;
   }
 
-  if (profile.role !== 'vendor' && pathname === '/vendor-dashboard') {
+  if (profile.role !== 'vendor' && (pathname === '/vendor-dashboard' || pathname === '/account/vendor')) {
     return <Redirect href="/" />;
   }
 

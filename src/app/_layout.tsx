@@ -16,6 +16,7 @@ import { useFonts } from 'expo-font';
 
 import { AuthGate } from '@/components/auth/AuthGate';
 import { RoleRedirect } from '@/components/auth/RoleRedirect';
+import { BrieflyGuide } from '@/components/onboarding/BrieflyGuide';
 import { ToastProvider } from '@/components/ui/Toast';
 import { useTheme } from '@/hooks/use-theme';
 import { AuthProvider } from '@/store/AuthContext';
@@ -57,8 +58,11 @@ export default function RootLayout() {
                 <Stack.Screen name="builder" />
                 <Stack.Screen name="spec" />
                 <Stack.Screen name="bids" />
+                <Stack.Screen name="brief-posted" />
+                <Stack.Screen name="checkout" />
                 <Stack.Screen name="account" />
               </Stack>
+              <BrieflyGuide />
               <StatusBar style="auto" />
             </BriefProvider>
           </AuthGate>

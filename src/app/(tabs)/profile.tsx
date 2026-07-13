@@ -24,7 +24,6 @@ export default function ProfileScreen() {
   const { user, profile } = useAuth();
   const { orders } = useBrief();
   const [unread, setUnread] = useState(0);
-  const isVendor = profile?.role === 'vendor';
   const displayName = profile?.display_name || user?.email?.split('@')[0] || 'Briefly user';
 
   const loadCounts = useCallback(async () => {
@@ -43,9 +42,6 @@ export default function ProfileScreen() {
   }, [loadCounts]);
 
   const menu: MenuItem[] = [
-    isVendor
-      ? { icon: 'briefcase', label: 'Vendor workspace', hint: 'Browse briefs and send bids', href: '/vendor-dashboard' }
-      : { icon: 'tool', label: 'Become a vendor', hint: 'Create your storefront and list services', href: '/account/vendor' },
     { icon: 'credit-card', label: 'Payment & escrow', hint: 'Fund jobs and check status', href: '/account/payments' },
     { icon: 'map-pin', label: 'Saved addresses', hint: 'Delivery or on-site addresses', href: '/account/addresses' },
     { icon: 'bell', label: 'Notifications', hint: 'Updates from Briefly', href: '/account/notifications', badge: unread },
@@ -73,7 +69,7 @@ export default function ProfileScreen() {
             <View style={{ flex: 1 }}>
               <ThemedText type="subtitle">{displayName}</ThemedText>
               <ThemedText type="small" themeColor="textSecondary">
-                {profile?.location || 'Singapore'} · {isVendor ? 'Vendor' : 'Buyer'} account
+                {profile?.location || 'Singapore'} · Buyer account
               </ThemedText>
             </View>
             <View style={[styles.badge, { backgroundColor: theme.tintSoft }]}>

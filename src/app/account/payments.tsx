@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
@@ -9,7 +10,6 @@ import { useToast } from '@/components/ui/Toast';
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { formatPrice } from '@/lib/config';
-import { createCheckoutSession, openCheckout } from '@/lib/payments';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/store/AuthContext';
 
@@ -56,12 +56,9 @@ export default function AccountPayments() {
   async function startCheckout(orderId: string) {
     setCheckoutId(orderId);
     try {
-      const checkout = await createCheckoutSession(orderId);
-      await openCheckout(checkout.url);
-      toast.success('Checkout opened. Escrow updates after payment succeeds.');
-      await load();
+      router.push({ pathname: '/checkout', params: { orderId } });
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Could not open Stripe Checkout.');
+      toast.error(err instanceof Error ? err.message : 'Could not open checkout.');
     } finally {
       setCheckoutId(null);
     }

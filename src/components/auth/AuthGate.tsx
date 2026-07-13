@@ -72,7 +72,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
                   Get bids, book makers, pay safely.
                 </ThemedText>
                 <ThemedText type="default" themeColor="textSecondary" style={styles.copy}>
-                  Briefly now requires an account so your briefs, vendor details, saved addresses, and escrow payments stay connected.
+                  Choose a buyer or vendor account when you sign up. Each side has its own workspace, so use a separate login if you need both.
                 </ThemedText>
               </Animated.View>
 
@@ -88,14 +88,16 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
 
                   {mode === 'signUp' ? (
                     <>
-                      <View style={styles.roleChooser}>
-                        <Chip
-                          label="I need work done"
+                      <View style={styles.roleCards}>
+                        <RoleCard
+                          title="Buyer"
+                          body="Post briefs, compare bids, and pay through escrow."
                           selected={signupRole === 'buyer'}
                           onPress={() => setSignupRole('buyer')}
                         />
-                        <Chip
-                          label="I am a vendor"
+                        <RoleCard
+                          title="Vendor"
+                          body="Manage services, browse buyer briefs, and submit quotes."
                           selected={signupRole === 'vendor'}
                           onPress={() => setSignupRole('vendor')}
                         />
@@ -157,6 +159,27 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   );
 }
 
+function RoleCard({
+  title,
+  body,
+  selected,
+  onPress,
+}: {
+  title: string;
+  body: string;
+  selected: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <View style={styles.roleCardWrap}>
+      <Chip label={title} selected={selected} onPress={onPress} />
+      <ThemedText type="small" themeColor="textSecondary">
+        {body}
+      </ThemedText>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   safe: { flex: 1 },
   scroll: {
@@ -178,5 +201,6 @@ const styles = StyleSheet.create({
   form: { gap: Spacing.three },
   markWrap: { alignItems: 'flex-start' },
   modeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two },
-  roleChooser: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two },
+  roleCards: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.three },
+  roleCardWrap: { flex: 1, minWidth: 210, gap: Spacing.two },
 });

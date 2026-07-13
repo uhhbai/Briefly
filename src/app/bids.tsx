@@ -15,7 +15,6 @@ import { useTheme } from '@/hooks/use-theme';
 import { loadBidsForBrief, saveAcceptedOrder } from '@/lib/briefsDb';
 import { formatPrice } from '@/lib/config';
 import { haptic } from '@/lib/haptics';
-import { createCheckoutSession, openCheckout } from '@/lib/payments';
 import type { Bid } from '@/lib/types';
 import { useBrief } from '@/store/BriefContext';
 
@@ -84,8 +83,7 @@ export default function BidsScreen() {
         return;
       }
 
-      const checkout = await createCheckoutSession(remoteOrderId);
-      await openCheckout(checkout.url);
+      router.push({ pathname: '/checkout', params: { orderId: remoteOrderId } });
     } catch (error) {
       Alert.alert(
         'Payment setup needed',

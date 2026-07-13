@@ -53,7 +53,7 @@ type CategoryFilter = 'all' | CategoryId;
 
 export default function VendorDashboardScreen() {
   const theme = useTheme();
-  const { user, profile, signOut, updateProfile } = useAuth();
+  const { user, profile, signOut } = useAuth();
   const [vendorProfile, setVendorProfile] = useState<VendorProfileRow | null>(null);
   const [briefs, setBriefs] = useState<VendorBrief[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -62,12 +62,12 @@ export default function VendorDashboardScreen() {
   const [saving, setSaving] = useState(false);
   const toast = useToast();
   // Route feedback through toasts instead of inline text.
-  const setNotice = (m: string | null) => {
+  const setNotice = useCallback((m: string | null) => {
     if (m) toast.success(m);
-  };
-  const setError = (m: string | null) => {
+  }, [toast]);
+  const setError = useCallback((m: string | null) => {
     if (m) toast.error(m);
-  };
+  }, [toast]);
   const [vendorForm, setVendorForm] = useState({
     business_name: profile?.display_name ?? '',
     category_id: CATEGORIES[0].id,
@@ -114,7 +114,7 @@ export default function VendorDashboardScreen() {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [setError, user]);
 
   useEffect(() => {
     const handle = setTimeout(() => {
@@ -144,7 +144,6 @@ export default function VendorDashboardScreen() {
         logo_url: vendorForm.logo_url || null,
       });
       setVendorProfile(next);
-      await updateProfile({ role: 'vendor' });
       setMyServices(await loadMyServices(next.id));
       setNotice('Vendor profile saved.');
     } catch (err) {
@@ -274,20 +273,11 @@ export default function VendorDashboardScreen() {
     }
   }
 
-  async function switchToBuyer() {
-    setSaving(true);
-    try {
-      await updateProfile({ role: 'buyer' });
-    } finally {
-      setSaving(false);
-    }
-  }
-
   return (
     <Screen
-      eyebrow="Vendor workspace"
-      title={`Welcome${profile?.display_name ? `, ${profile.display_name}` : ''}`}
-      subtitle="Browse open buyer briefs, pick the jobs that fit your craft, and send a bid."
+      eyebrow="Vendor home"
+      title={`Briefs, services, and bids${profile?.display_name ? ` for ${profile.display_name}` : ''}`}
+      subtitle="Run your vendor side of Briefly here: manage your storefront, browse available buyer briefs, and submit quotes."
       footer={
         <View style={styles.footerActions}>
           <Button title="Refresh briefs" variant="secondary" iconRight="refresh-cw" loading={loading} onPress={loadDashboard} />
@@ -355,10 +345,7 @@ export default function VendorDashboardScreen() {
           placeholder="What jobs are you best at?"
           multiline
         />
-        <View style={styles.actionRow}>
-          <Button title="Save vendor profile" iconRight="check-circle" loading={saving} onPress={saveProfile} style={styles.actionButton} />
-          <Button title="Buyer mode" variant="secondary" onPress={switchToBuyer} style={styles.actionButton} />
-        </View>
+        <Button title="Save vendor profile" iconRight="check-circle" loading={saving} onPress={saveProfile} />
       </View>
 
       <View style={[styles.vendorSetup, { borderColor: theme.border, backgroundColor: theme.card }]}>

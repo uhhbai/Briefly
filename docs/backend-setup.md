@@ -16,6 +16,8 @@ doesn't block the Supabase API — a corporate proxy often does (you'll see
 ```
 EXPO_PUBLIC_SUPABASE_URL=https://aqyigmhamqqedyiifwvs.supabase.co
 EXPO_PUBLIC_SUPABASE_ANON_KEY=<your anon public key>
+EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_xxx
+EXPO_PUBLIC_TELEGRAM_BOT_USERNAME=BrieflyNotifBot
 ```
 The client accepts `EXPO_PUBLIC_SUPABASE_ANON_KEY` **or**
 `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY`.
@@ -84,13 +86,14 @@ Don't add `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` — they're automatic.
      `npm run functions:deploy:webhook`
    - Path B: add it in the dashboard Secrets (no redeploy needed).
 
-**Flow:** accept a bid → app opens Stripe Checkout → on payment Stripe calls the
-webhook → order becomes `funded` and an escrow event is recorded.
+**Flow:** accept a bid → the website shows embedded Stripe Checkout in Briefly
+→ on payment Stripe calls the webhook → order becomes `funded` and an escrow event is recorded.
 Account → Payment & escrow → **Refresh** shows the status update.
 
-> Native redirect note: after paying, Stripe redirects to `APP_URL` (default
-> `http://localhost:8081`). The payment still completes regardless — the webhook
-> is what matters. Set an `APP_URL` secret to point at your own page.
+> Embedded checkout note: `create-checkout-session` must be deployed after this
+> update because it now returns a Stripe `client_secret` for the in-page checkout.
+> Set `APP_URL` to your website origin in deployed environments so Stripe returns
+> to the right `/checkout/return` page.
 
 ---
 
@@ -103,9 +106,14 @@ Account → Payment & escrow → **Refresh** shows the status update.
 3. Press **Start** in a chat with your bot once (Telegram blocks bots from DMing
    users who haven't started them).
 
+Current app flow: under **Account > Settings > Telegram bid alerts**, buyers can
+tap **Open @userinfobot**, paste the returned numeric chat ID, tap **Find
+Briefly bot** to open the bot discovered from `TELEGRAM_BOT_TOKEN`, and then
+tap **Save and send test**.
+
 When a vendor bids, `submitVendorBid` calls `notify-bid`, which (service role)
-looks up the brief's buyer and DMs their linked chat. It always writes an in-app
-notification too, so alerts work even without Telegram linked.
+looks up the brief's buyer, writes an in-app notification, and DMs their linked
+Telegram chat when available.
 
 ## Troubleshooting
 - **"Could not reach the payment Edge Function"** → functions not deployed, or

@@ -74,8 +74,12 @@ Deno.serve(async (req) => {
     const title = brief?.title ?? 'Briefly escrow payment';
     const vendorName = bid?.vendor_name ? ` with ${bid.vendor_name}` : '';
 
+    const returnUrl = `${appUrl}/checkout/return?session_id={CHECKOUT_SESSION_ID}`;
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',
+      ui_mode: 'embedded_page',
+      return_url: returnUrl,
+      redirect_on_completion: 'if_required',
       customer_email: user.email ?? undefined,
       line_items: [
         {
@@ -95,8 +99,6 @@ Deno.serve(async (req) => {
         brief_id: order.brief_id,
         user_id: user.id,
       },
-      success_url: `${appUrl}/briefs?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${appUrl}/bids?checkout=cancelled&order_id=${order.id}`,
     });
 
     await Promise.all([
@@ -105,7 +107,7 @@ Deno.serve(async (req) => {
           order_id: order.id,
           profile_id: user.id,
           stripe_session_id: session.id,
-          checkout_url: session.url,
+          checkout_url: session.url ?? `${appUrl}/checkout?orderId=${order.id}`,
           status: 'open',
           amount: order.escrow_amount,
           currency: 'sgd',
@@ -121,7 +123,7 @@ Deno.serve(async (req) => {
       }),
     ]);
 
-    return json({ url: session.url, sessionId: session.id });
+    return json({ clientSecret: session.client_secret, url: session.url, sessionId: session.id });
   } catch (error) {
     return json({ error: error instanceof Error ? error.message : 'Checkout failed.' }, 500);
   }
