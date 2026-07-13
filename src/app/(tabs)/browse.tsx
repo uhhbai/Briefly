@@ -4,55 +4,31 @@ import { ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import Animated, { FadeInDown, LinearTransition } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { ThemedText } from '@/components/themed-text';
 import { ServiceCard, VendorCard } from '@/components/marketplace';
+import { ThemedText } from '@/components/themed-text';
 import { Canvas } from '@/components/ui/Canvas';
 import { Chip } from '@/components/ui/Chip';
 import { Divider } from '@/components/ui/Divider';
 import { Icon } from '@/components/ui/Icon';
 import { Radius, Spacing, Type } from '@/constants/theme';
+import { useCatalog, useFilteredCatalog } from '@/hooks/use-catalog';
 import { useTheme } from '@/hooks/use-theme';
-import { CATEGORIES } from '@/lib/config';
-import { fetchCategories, searchCatalog } from '@/lib/db';
-import type { Category, CategoryId, Service, Vendor } from '@/lib/types';
+import type { CategoryId } from '@/lib/types';
 
 export default function BrowseScreen() {
   const theme = useTheme();
   const params = useLocalSearchParams<{ category?: string }>();
+  const catalog = useCatalog();
   const [query, setQuery] = useState('');
   const [activeCat, setActiveCat] = useState<CategoryId | 'all'>((params.category as CategoryId) ?? 'all');
-  const [cats, setCats] = useState<Category[]>(CATEGORIES.filter((c) => c.id !== 'other'));
-  const [vendors, setVendors] = useState<Vendor[]>([]);
-  const [services, setServices] = useState<Service[]>([]);
 
   useEffect(() => {
-    let active = true;
-    fetchCategories().then((nextCats) => {
-      if (active) setCats(nextCats.filter((c) => c.id !== 'other'));
-    });
-    return () => {
-      active = false;
-    };
-  }, []);
+    if (!params.category) return;
+    const id = setTimeout(() => setActiveCat(params.category as CategoryId), 0);
+    return () => clearTimeout(id);
+  }, [params.category]);
 
-  useEffect(() => {
-    let active = true;
-    searchCatalog(query).then((base) => {
-      if (!active) return;
-      const next =
-        activeCat === 'all'
-          ? base
-          : {
-              vendors: base.vendors.filter((v) => v.categoryId === activeCat),
-              services: base.services.filter((s) => s.categoryId === activeCat),
-            };
-      setVendors(next.vendors);
-      setServices(next.services);
-    });
-    return () => {
-      active = false;
-    };
-  }, [query, activeCat]);
+  const { vendors, services } = useFilteredCatalog(catalog, query, activeCat);
 
   const empty = vendors.length === 0 && services.length === 0;
 
@@ -61,6 +37,12 @@ export default function BrowseScreen() {
       <SafeAreaView style={styles.safe} edges={['top']}>
       <View style={styles.headerWrap}>
         <ThemedText type="title">Browse</ThemedText>
+        <View style={styles.sourceRow}>
+          <View style={[styles.sourceDot, { backgroundColor: catalog.source === 'supabase' ? theme.success : theme.warning }]} />
+          <ThemedText type="small" themeColor="textSecondary">
+            {catalog.loading ? 'Loading marketplace' : catalog.source === 'supabase' ? 'Connected to Supabase' : 'Using local demo data'}
+          </ThemedText>
+        </View>
         <View style={[styles.search, { backgroundColor: theme.card, borderColor: theme.border }]}>
           <Icon name="search" size={17} color={theme.muted} />
           <TextInput
@@ -138,6 +120,8 @@ export default function BrowseScreen() {
 const styles = StyleSheet.create({
   safe: { flex: 1 },
   headerWrap: { paddingHorizontal: Spacing.gutter, paddingTop: Spacing.two, gap: Spacing.three },
+  sourceRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two, marginTop: -Spacing.two },
+  sourceDot: { width: 7, height: 7, borderRadius: 999 },
   search: {
     flexDirection: 'row',
     alignItems: 'center',

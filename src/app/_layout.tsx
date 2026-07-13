@@ -3,7 +3,6 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { View, useColorScheme } from 'react-native';
 
-import { useFonts } from 'expo-font';
 import { Fraunces_400Regular } from '@expo-google-fonts/fraunces/400Regular';
 import { Fraunces_400Regular_Italic } from '@expo-google-fonts/fraunces/400Regular_Italic';
 import { Fraunces_500Medium } from '@expo-google-fonts/fraunces/500Medium';
@@ -14,10 +13,13 @@ import { Inter_400Regular } from '@expo-google-fonts/inter/400Regular';
 import { Inter_500Medium } from '@expo-google-fonts/inter/500Medium';
 import { Inter_600SemiBold } from '@expo-google-fonts/inter/600SemiBold';
 import { Inter_700Bold } from '@expo-google-fonts/inter/700Bold';
+import { useFonts } from 'expo-font';
 
+import { AuthGate } from '@/components/auth/AuthGate';
+import { RoleRedirect } from '@/components/auth/RoleRedirect';
 import { useTheme } from '@/hooks/use-theme';
+import { AuthProvider } from '@/store/AuthContext';
 import { BriefProvider } from '@/store/BriefContext';
-import { SessionProvider, useSession } from '@/store/SessionProvider';
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
@@ -43,12 +45,22 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider value={navTheme}>
-      <SessionProvider>
-        <BriefProvider>
-          <RootNavigator />
-          <StatusBar style="auto" />
-        </BriefProvider>
-      </SessionProvider>
+      <AuthProvider>
+        <AuthGate>
+          <BriefProvider>
+            <RoleRedirect />
+            <Stack screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
+              <Stack.Screen name="(tabs)" />
+              <Stack.Screen name="vendor-dashboard" />
+              <Stack.Screen name="describe" options={{ animation: 'slide_from_bottom' }} />
+              <Stack.Screen name="builder" />
+              <Stack.Screen name="spec" />
+              <Stack.Screen name="bids" />
+            </Stack>
+            <StatusBar style="auto" />
+          </BriefProvider>
+        </AuthGate>
+      </AuthProvider>
     </ThemeProvider>
   );
 }

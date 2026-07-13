@@ -250,7 +250,6 @@ const VENDOR_POOL: { name: string; avatar: string; verified: boolean; rating: nu
   { name: 'PrecisionPrint Co.', avatar: '🖨️', verified: true, rating: 4.6, reviews: 102 },
 ];
 
-
 export async function generateBids(spec: StructuredSpec): Promise<Bid[]> {
   await delay(1200);
   const budgetField = spec.fields.find((f) => f.key === 'budget');

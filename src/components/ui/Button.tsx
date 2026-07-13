@@ -29,8 +29,8 @@ export function Button({ title, onPress, variant = 'primary', disabled, loading,
   const scale = useSharedValue(1);
   const animatedStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
 
-  const bg = variant === 'primary' ? theme.text : 'transparent';
-  const fg = variant === 'primary' ? theme.background : theme.text;
+  const bg = variant === 'primary' ? theme.tint : 'transparent';
+  const fg = variant === 'primary' ? theme.tintText : variant === 'secondary' ? theme.tint : theme.text;
 
   return (
     <AnimatedPressable
@@ -40,17 +40,15 @@ export function Button({ title, onPress, variant = 'primary', disabled, loading,
       onPressIn={() => {
         if (isDisabled) return;
         haptic.medium();
-        // eslint-disable-next-line react-hooks/immutability
-        scale.value = withTiming(0.98, { duration: 90 });
+        scale.set(withTiming(0.98, { duration: 90 }));
       }}
       onPressOut={() => {
-        // eslint-disable-next-line react-hooks/immutability
-        scale.value = withSpring(1, { damping: 14, stiffness: 240 });
+        scale.set(withSpring(1, { damping: 14, stiffness: 240 }));
       }}
       style={[
         styles.base,
         { backgroundColor: bg, opacity: isDisabled ? 0.4 : 1 },
-        variant === 'secondary' && { borderWidth: StyleSheet.hairlineWidth, borderColor: theme.text },
+        variant === 'secondary' && { borderWidth: StyleSheet.hairlineWidth, borderColor: theme.tint, backgroundColor: theme.tintSoft },
         animatedStyle,
         style,
       ]}>
@@ -59,7 +57,7 @@ export function Button({ title, onPress, variant = 'primary', disabled, loading,
       ) : (
         <View style={styles.row}>
           {iconLeft && <Icon name={iconLeft} size={18} color={fg} />}
-          <ThemedText type="link" style={{ color: fg, fontSize: 15.5, letterSpacing: 0.2 }}>
+          <ThemedText type="link" style={{ color: fg, fontSize: 15.5, letterSpacing: 0 }}>
             {title}
           </ThemedText>
           {iconRight && <Icon name={iconRight} size={18} color={fg} />}

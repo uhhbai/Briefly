@@ -11,7 +11,7 @@ type Props = {
   onPress?: () => void;
 };
 
-/** A pill filter. Selected = ink fill; rest = hairline outline. Quiet, no colour noise. */
+/** A pill filter with a light selected state. */
 export function Chip({ label, selected, onPress }: Props) {
   const theme = useTheme();
   return (
@@ -23,15 +23,15 @@ export function Chip({ label, selected, onPress }: Props) {
       style={({ pressed }) => [
         styles.chip,
         {
-          backgroundColor: selected ? theme.text : 'transparent',
-          borderColor: selected ? theme.text : theme.border,
+          backgroundColor: selected ? theme.tintSoft : theme.card,
+          borderColor: selected ? theme.tint : theme.border,
           opacity: pressed ? 0.7 : 1,
         },
       ]}>
       <ThemedText
         style={{
           fontFamily: Type.sansMedium,
-          color: selected ? theme.background : theme.textSecondary,
+          color: selected ? theme.tint : theme.textSecondary,
           fontSize: 14,
         }}>
         {label}

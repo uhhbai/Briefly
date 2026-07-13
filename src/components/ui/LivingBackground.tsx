@@ -20,104 +20,148 @@ type RibbonSpec = {
   y: number;
   dx: number;
   dy: number;
-  tilt: number;
+  rotate: string;
   duration: number;
 };
 
 const RIBBONS: Record<'light' | 'dark', RibbonSpec[]> = {
   light: [
     {
-      colors: ['rgba(45,212,191,0.28)', 'rgba(105,83,211,0.12)', 'rgba(255,255,255,0)'],
-      width: 720,
-      height: 170,
+      colors: ['rgba(15,159,143,0.16)', 'rgba(124,140,248,0.10)', 'transparent'],
+      width: 820,
+      height: 96,
       x: -260,
-      y: 28,
-      dx: 70,
-      dy: 18,
-      tilt: -17,
-      duration: 22000,
+      y: 88,
+      dx: 90,
+      dy: 22,
+      rotate: '-18deg',
+      duration: 18000,
     },
     {
-      colors: ['rgba(99,102,241,0.20)', 'rgba(14,165,233,0.12)', 'rgba(255,255,255,0)'],
-      width: 640,
-      height: 140,
-      x: 42,
-      y: 470,
-      dx: -80,
-      dy: 36,
-      tilt: 14,
-      duration: 27000,
+      colors: ['rgba(255,122,89,0.12)', 'rgba(244,201,93,0.12)', 'transparent'],
+      width: 700,
+      height: 84,
+      x: 8,
+      y: 420,
+      dx: -70,
+      dy: 30,
+      rotate: '15deg',
+      duration: 23000,
     },
     {
-      colors: ['rgba(14,147,132,0.18)', 'rgba(255,255,255,0.04)', 'rgba(255,255,255,0)'],
-      width: 560,
-      height: 110,
+      colors: ['rgba(47,143,105,0.10)', 'rgba(79,163,247,0.08)', 'transparent'],
+      width: 760,
+      height: 72,
+      x: -180,
+      y: 720,
+      dx: 80,
+      dy: -25,
+      rotate: '-10deg',
+      duration: 26000,
+    },
+    {
+      colors: ['rgba(255,122,89,0.08)', 'rgba(15,159,143,0.10)', 'transparent'],
+      width: 620,
+      height: 48,
       x: -120,
-      y: 760,
-      dx: 50,
-      dy: -30,
-      tilt: -8,
-      duration: 25000,
+      y: 250,
+      dx: 130,
+      dy: -18,
+      rotate: '28deg',
+      duration: 16000,
+    },
+    {
+      colors: ['rgba(244,201,93,0.10)', 'rgba(124,140,248,0.08)', 'transparent'],
+      width: 900,
+      height: 56,
+      x: -360,
+      y: 585,
+      dx: 110,
+      dy: 35,
+      rotate: '-28deg',
+      duration: 21000,
     },
   ],
   dark: [
     {
-      colors: ['rgba(45,212,191,0.24)', 'rgba(167,139,250,0.14)', 'rgba(7,17,31,0)'],
-      width: 720,
-      height: 170,
+      colors: ['rgba(114,224,201,0.16)', 'rgba(124,140,248,0.10)', 'transparent'],
+      width: 820,
+      height: 96,
       x: -260,
-      y: 28,
-      dx: 70,
-      dy: 18,
-      tilt: -17,
-      duration: 22000,
+      y: 88,
+      dx: 90,
+      dy: 22,
+      rotate: '-18deg',
+      duration: 18000,
     },
     {
-      colors: ['rgba(99,102,241,0.22)', 'rgba(14,165,233,0.12)', 'rgba(7,17,31,0)'],
-      width: 640,
-      height: 140,
-      x: 42,
-      y: 470,
-      dx: -80,
-      dy: 36,
-      tilt: 14,
-      duration: 27000,
+      colors: ['rgba(255,154,120,0.13)', 'rgba(242,200,107,0.10)', 'transparent'],
+      width: 700,
+      height: 84,
+      x: 8,
+      y: 420,
+      dx: -70,
+      dy: 30,
+      rotate: '15deg',
+      duration: 23000,
     },
     {
-      colors: ['rgba(20,184,166,0.16)', 'rgba(167,139,250,0.08)', 'rgba(7,17,31,0)'],
-      width: 560,
-      height: 110,
+      colors: ['rgba(134,211,158,0.10)', 'rgba(79,163,247,0.09)', 'transparent'],
+      width: 760,
+      height: 72,
+      x: -180,
+      y: 720,
+      dx: 80,
+      dy: -25,
+      rotate: '-10deg',
+      duration: 26000,
+    },
+    {
+      colors: ['rgba(255,154,120,0.09)', 'rgba(114,224,201,0.10)', 'transparent'],
+      width: 620,
+      height: 48,
       x: -120,
-      y: 760,
-      dx: 50,
-      dy: -30,
-      tilt: -8,
-      duration: 25000,
+      y: 250,
+      dx: 130,
+      dy: -18,
+      rotate: '28deg',
+      duration: 16000,
+    },
+    {
+      colors: ['rgba(242,200,107,0.10)', 'rgba(124,140,248,0.08)', 'transparent'],
+      width: 900,
+      height: 56,
+      x: -360,
+      y: 585,
+      dx: 110,
+      dy: 35,
+      rotate: '-28deg',
+      duration: 21000,
     },
   ],
 };
 
-function Ribbon({ colors, width, height, x, y, dx, dy, tilt, duration }: RibbonSpec) {
+function Ribbon({ colors, width, height, x, y, dx, dy, rotate, duration }: RibbonSpec) {
   const reduced = useReducedMotion();
-  const p = useSharedValue(reduced ? 0.5 : 0);
+  const progress = useSharedValue(reduced ? 0.45 : 0);
 
   useEffect(() => {
     if (reduced) return;
-    p.value = withRepeat(withTiming(1, { duration, easing: Easing.inOut(Easing.sin) }), -1, true);
-  }, [duration, p, reduced]);
+    progress.set(withRepeat(withTiming(1, { duration, easing: Easing.inOut(Easing.sin) }), -1, true));
+  }, [duration, progress, reduced]);
 
-  const style = useAnimatedStyle(() => ({
+  const animatedStyle = useAnimatedStyle(() => ({
     transform: [
-      { translateX: x + dx * p.value },
-      { translateY: y + dy * p.value },
-      { rotateZ: `${tilt + 3 * p.value}deg` },
-      { scaleX: 1 + 0.06 * p.value },
+      { translateX: x + dx * progress.value },
+      { translateY: y + dy * progress.value },
+      { rotate },
+      { scaleX: 1 + 0.06 * progress.value },
     ],
   }));
 
   return (
-    <Animated.View style={[styles.ribbon, { width, height }, style]}>
-      <LinearGradient colors={colors} start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }} style={StyleSheet.absoluteFill} />
+    <Animated.View style={[styles.ribbon, { width, height }, animatedStyle]}>
+      <LinearGradient colors={colors} start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }} style={styles.fill} />
     </Animated.View>
   );
 }
@@ -125,13 +169,10 @@ function Ribbon({ colors, width, height, x, y, dx, dy, tilt, duration }: RibbonS
 export function LivingBackground() {
   const scheme = useColorScheme();
   const ribbons = scheme === 'dark' ? RIBBONS.dark : RIBBONS.light;
-  const gridColor = scheme === 'dark' ? 'rgba(183,197,216,0.045)' : 'rgba(71,84,103,0.055)';
-
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="none">
-      <View style={[styles.grid, { borderColor: gridColor }]} />
-      {ribbons.map((r, i) => (
-        <Ribbon key={i} {...r} />
+      {ribbons.map((ribbon, i) => (
+        <Ribbon key={i} {...ribbon} />
       ))}
       <LinearGradient
         colors={scheme === 'dark' ? ['rgba(7,17,31,0)', '#07111F'] : ['rgba(245,248,255,0)', '#F5F8FF']}
@@ -142,25 +183,12 @@ export function LivingBackground() {
 }
 
 const styles = StyleSheet.create({
-  grid: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    bottom: 0,
-    left: 0,
-    borderWidth: StyleSheet.hairlineWidth,
-    opacity: 0.8,
-  },
   ribbon: {
     position: 'absolute',
-    overflow: 'hidden',
-    borderRadius: 28,
+    opacity: 1,
   },
-  fade: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    height: 220,
+  fill: {
+    flex: 1,
+    borderRadius: 999,
   },
 });

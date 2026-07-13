@@ -1,49 +1,57 @@
+/**
+ * Briefly design system: bright marketplace, calm enough for decisions.
+ *
+ * Porcelain surfaces, ink text, and balanced teal, coral, lilac, and amber
+ * accents. The goal is lighter and more ownable without turning the app into
+ * a single-color theme.
+ */
+
 import '@/global.css';
 
 import { Platform } from 'react-native';
 
 export const Colors = {
   light: {
-    text: '#101828',
-    textSecondary: '#475467',
-    muted: '#7A869A',
-    background: '#F5F8FF',
-    backgroundElement: '#FFFFFF',
-    backgroundSelected: '#E7F0FF',
-    card: 'rgba(255,255,255,0.86)',
-    border: '#D7E0EF',
-    tint: '#0E9384',
-    tintText: '#F7FEFF',
-    tintSoft: '#D7F7F2',
-    accent: '#6953D3',
-    success: '#079455',
-    successBg: '#DDF8E7',
-    warning: '#B54708',
-    danger: '#D92D20',
-    onImage: '#F8FBFF',
-    scrim: 'rgba(16,24,40,0.36)',
-    frame: '#D9E6F7',
+    text: '#17202A',
+    textSecondary: '#536171',
+    muted: '#8390A0',
+    background: '#FBFCF8',
+    backgroundElement: '#F4F8F2',
+    backgroundSelected: '#E7F2ED',
+    card: '#FFFFFF',
+    border: '#DFE8E3',
+    tint: '#0F9F8F',
+    tintText: '#F9FFFC',
+    tintSoft: '#DAF3EC',
+    accent: '#FF7A59',
+    success: '#2F8F69',
+    successBg: '#DFF4EA',
+    warning: '#B77B12',
+    danger: '#C94E45',
+    onImage: '#FFFFFF',
+    scrim: 'rgba(23,32,42,0.36)',
+    frame: '#EEF4EF',
   },
   dark: {
-    text: '#F5FAFF',
-    textSecondary: '#B7C5D8',
-    muted: '#7F8EA3',
-    background: '#07111F',
-    backgroundElement: '#101A2B',
-    backgroundSelected: '#16263D',
-    card: 'rgba(16,26,43,0.84)',
-    border: '#26364D',
-    tint: '#2DD4BF',
-    tintText: '#031B1A',
-    tintSoft: '#123C3B',
-    accent: '#A78BFA',
-    success: '#6CE9A6',
-    successBg: '#0B3320',
-    warning: '#FEC84B',
-    danger: '#FDA29B',
-    onImage: '#F8FBFF',
-    scrim: 'rgba(3,9,18,0.56)',
-    frame: '#030712',
+    text: '#F5FBF8',
+    textSecondary: '#C6D4CE',
+    muted: '#91A39B',
+    background: '#13211F',
+    backgroundElement: '#1B2D29',
+    backgroundSelected: '#243D37',
+    card: '#1B2D29',
+    border: '#31524A',
+    tint: '#72E0C9',
+    tintText: '#10201D',
+    tintSoft: '#234D45',
+    accent: '#FF9A78',
+    success: '#86D39E',
+    successBg: '#213B2B',
+    warning: '#F2C86B',
+    danger: '#F08A7C',
+    onImage: '#FFFFFF',
+    scrim: 'rgba(9,20,18,0.5)',
+    frame: '#0D1715',
   },
 } as const;
 
@@ -86,26 +94,26 @@ export const MaxContentWidth = 760;
 
 export const Radius = {
   none: 0,
-  sm: 6,
-  md: 10,
-  lg: 14,
-  xl: 18,
+  sm: 4,
+  md: 8,
+  lg: 8,
+  xl: 10,
   pill: 999,
 } as const;
 
 export const Shadow = {
   card: {
-    shadowColor: '#0B1220',
-    shadowOpacity: 0.1,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 10 },
+    shadowColor: '#19332F',
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
     elevation: 3,
   },
   float: {
-    shadowColor: '#0B1220',
-    shadowOpacity: 0.18,
-    shadowRadius: 26,
-    shadowOffset: { width: 0, height: 16 },
+    shadowColor: '#19332F',
+    shadowOpacity: 0.14,
+    shadowRadius: 22,
+    shadowOffset: { width: 0, height: 12 },
     elevation: 10,
   },
 } as const;

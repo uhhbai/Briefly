@@ -1,10 +1,28 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Briefly app mark — ink tile, bone serif "B", sienna full-stop.
-     Export to PNG (e.g. 1024×1024) for the store icon. Swap the font to
-     Fraunces if available in your export tool for an exact match. -->
+<!-- Briefly mark: messy request lines compressed into a clean brief and accepted bid. -->
 <svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect width="1024" height="1024" rx="288" fill="#1C1A16"/>
-  <text x="486" y="512" fill="#ECE6DA" font-family="Fraunces, Georgia, 'Times New Roman', serif"
-        font-size="620" font-weight="600" text-anchor="middle" dominant-baseline="central">B</text>
-  <circle cx="678" cy="668" r="58" fill="#9C4226"/>
+  <defs>
+    <linearGradient id="briefly-bg" x1="108" y1="96" x2="914" y2="918" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0F9F8F"/>
+      <stop offset="0.58" stop-color="#5F7DF2"/>
+      <stop offset="1" stop-color="#FF7A59"/>
+    </linearGradient>
+    <filter id="briefly-shadow" x="180" y="168" width="696" height="700" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="28" stdDeviation="34" flood-color="#17202A" flood-opacity="0.22"/>
+    </filter>
+  </defs>
+  <rect width="1024" height="1024" rx="236" fill="url(#briefly-bg)"/>
+  <path d="M206 626C314 560 430 528 554 530C682 532 770 574 834 644" stroke="white" stroke-width="52" stroke-linecap="round" opacity="0.34"/>
+  <g filter="url(#briefly-shadow)">
+    <rect x="246" y="218" width="116" height="590" rx="58" fill="white" fill-opacity="0.96"/>
+    <path d="M362 216H634C736 216 816 292 816 386C816 476 742 546 642 546H362V216Z" fill="white" fill-opacity="0.93"/>
+    <path d="M362 500H666C774 500 854 578 854 674C854 771 770 846 660 846H362V500Z" fill="white" fill-opacity="0.93"/>
+    <rect x="462" y="336" width="190" height="26" rx="13" fill="#17202A" fill-opacity="0.42"/>
+    <rect x="462" y="404" width="256" height="26" rx="13" fill="#17202A" fill-opacity="0.34"/>
+    <rect x="462" y="624" width="230" height="26" rx="13" fill="#0F9F8F" fill-opacity="0.72"/>
+    <rect x="462" y="692" width="152" height="26" rx="13" fill="#0F9F8F" fill-opacity="0.42"/>
+    <circle cx="732" cy="706" r="58" fill="#FF7A59"/>
+    <path d="M702 706L724 728L766 680" stroke="white" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <rect x="234" y="472" width="534" height="76" rx="38" transform="rotate(-17 234 472)" fill="white" fill-opacity="0.42"/>
 </svg>

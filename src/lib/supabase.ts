@@ -1,60 +1,78 @@
 import 'react-native-url-polyfill/auto';
-
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { createClient } from '@supabase/supabase-js';
-import { Platform } from 'react-native';
+import { createClient, processLock } from '@supabase/supabase-js';
+import { AppState, Platform } from 'react-native';
 
-/**
- * Supabase client + anonymous-auth bootstrap.
- *
- * Reads EXPO_PUBLIC_SUPABASE_URL / EXPO_PUBLIC_SUPABASE_ANON_KEY from .env.
- * Until those are set, `isSupabaseConfigured` is false and the data layer
- * (src/lib/db.ts) falls back to the local mock catalog — so the app always
- * runs, with or without a backend.
- */
+class NoopWebSocket {
+  static CONNECTING = 0;
+  static OPEN = 1;
+  static CLOSING = 2;
+  static CLOSED = 3;
 
-const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
-const anonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+  readonly CONNECTING = NoopWebSocket.CONNECTING;
+  readonly OPEN = NoopWebSocket.OPEN;
+  readonly CLOSING = NoopWebSocket.CLOSING;
+  readonly CLOSED = NoopWebSocket.CLOSED;
+  readonly readyState = NoopWebSocket.CLOSED;
+  readonly protocol = '';
+  readonly url: string;
+  binaryType = 'blob';
+  bufferedAmount = 0;
+  extensions = '';
+  onclose: ((this: unknown, ev: CloseEvent) => unknown) | null = null;
+  onerror: ((this: unknown, ev: Event) => unknown) | null = null;
+  onmessage: ((this: unknown, ev: MessageEvent) => unknown) | null = null;
+  onopen: ((this: unknown, ev: Event) => unknown) | null = null;
 
-export const isSupabaseConfigured = Boolean(url && anonKey);
+  constructor(address: string | URL) {
+    this.url = String(address);
+  }
 
-if (!isSupabaseConfigured && __DEV__) {
-  console.warn(
-    '[Briefly] Supabase not configured — using mock data. ' +
-      'Add EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY to .env to connect.'
-  );
+  close() {}
+  send() {}
+  addEventListener() {}
+  removeEventListener() {}
+  dispatchEvent() {
+    return false;
+  }
 }
 
-export const supabase = createClient(
-  url ?? 'https://placeholder.supabase.co',
-  anonKey ?? 'placeholder-anon-key',
-  {
-    auth: {
-      // Persist the session so the same anonymous user is kept across launches.
-      storage: Platform.OS === 'web' ? undefined : AsyncStorage,
-      autoRefreshToken: true,
-      persistSession: true,
-      detectSessionInUrl: false,
-    },
+function normalizeSupabaseUrl(rawUrl: string | undefined) {
+  if (!rawUrl) throw new Error('Missing EXPO_PUBLIC_SUPABASE_URL.');
+
+  try {
+    const url = new URL(rawUrl);
+    return `${url.protocol}//${url.host}`;
+  } catch {
+    throw new Error('EXPO_PUBLIC_SUPABASE_URL must be a full URL like https://your-project-ref.supabase.co.');
   }
-);
+}
 
-/**
- * Ensure there's a signed-in user. With no login UI yet, we sign in
- * anonymously — every device gets a real auth.uid() so row-level security
- * works and data is scoped per user. Later, link this anon user to an
- * email/Singpass identity to "upgrade" the account without losing data.
- */
-export async function ensureAnonymousSession(): Promise<string | null> {
-  if (!isSupabaseConfigured) return null;
+const supabaseUrl = normalizeSupabaseUrl(process.env.EXPO_PUBLIC_SUPABASE_URL);
+const supabasePublishableKey = process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY!;
+const hasLocalStorage = typeof localStorage !== 'undefined';
+const realtimeTransport = typeof WebSocket !== 'undefined' ? WebSocket : NoopWebSocket;
+const storage = Platform.OS === 'web' ? (hasLocalStorage ? localStorage : undefined) : AsyncStorage;
 
-  const { data: existing } = await supabase.auth.getSession();
-  if (existing.session?.user) return existing.session.user.id;
+export const supabase = createClient(supabaseUrl, supabasePublishableKey, {
+  auth: {
+    storage,
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: false,
+    lock: processLock,
+  },
+  realtime: {
+    transport: realtimeTransport,
+  },
+});
 
-  const { data, error } = await supabase.auth.signInAnonymously();
-  if (error) {
-    console.warn('[Briefly] Anonymous sign-in failed:', error.message);
-    return null;
-  }
-  return data.user?.id ?? null;
+if (Platform.OS !== 'web') {
+  AppState.addEventListener('change', (state) => {
+    if (state === 'active') {
+      supabase.auth.startAutoRefresh();
+    } else {
+      supabase.auth.stopAutoRefresh();
+    }
+  });
 }

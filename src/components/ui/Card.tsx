@@ -1,6 +1,6 @@
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 
-import { Radius, Spacing } from '@/constants/theme';
+import { Radius, Shadow, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 type Props = {
@@ -18,6 +18,7 @@ export function Card({ children, style, accentColor }: Props) {
       style={[
         styles.card,
         { backgroundColor: theme.card, borderColor: theme.border },
+        Shadow.card,
         accentColor ? { borderLeftWidth: 2, borderLeftColor: accentColor } : null,
         style,
       ]}>

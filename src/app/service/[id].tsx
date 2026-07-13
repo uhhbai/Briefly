@@ -15,8 +15,8 @@ import { PressableScale } from '@/components/ui/PressableScale';
 import { Rating } from '@/components/ui/Rating';
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { getVendor, loadServiceDetail, SERVICES } from '@/lib/catalog';
 import { formatPrice, getCategory } from '@/lib/config';
-import { fetchService, fetchVendor } from '@/lib/db';
 import { haptic } from '@/lib/haptics';
 import type { Service, Vendor } from '@/lib/types';
 
@@ -25,30 +25,22 @@ const INCLUDED = ['Free consultation & measurements', 'Made to order, to your ex
 export default function ServiceDetail() {
   const theme = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const [service, setService] = useState<Service | null | undefined>(undefined);
-  const [vendor, setVendor] = useState<Vendor | null>(null);
+  const fallbackService = SERVICES.find((s) => s.id === id) ?? null;
+  const fallbackVendor = fallbackService ? getVendor(fallbackService.vendorId) ?? null : null;
+  const [service, setService] = useState<Service | null>(fallbackService);
+  const [vendor, setVendor] = useState<Vendor | null>(fallbackVendor);
 
   useEffect(() => {
-    let active = true;
-    if (!id) return;
-    fetchService(id).then(async (nextService) => {
-      const nextVendor = nextService ? await fetchVendor(nextService.vendorId) : null;
-      if (!active) return;
-      setService(nextService);
-      setVendor(nextVendor);
+    let alive = true;
+    loadServiceDetail(id).then((result) => {
+      if (!alive) return;
+      setService(result.service);
+      setVendor(result.vendor);
     });
     return () => {
-      active = false;
+      alive = false;
     };
   }, [id]);
-
-  if (service === undefined) {
-    return (
-      <SafeAreaView style={[styles.safe, { backgroundColor: theme.background }]}>
-        <ThemedText style={{ padding: Spacing.four }}>Loading listing...</ThemedText>
-      </SafeAreaView>
-    );
-  }
 
   if (!service) {
     return (

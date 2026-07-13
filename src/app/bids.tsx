@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { ThemedText } from '@/components/themed-text';
@@ -12,19 +12,21 @@ import { Rating } from '@/components/ui/Rating';
 import { Screen } from '@/components/ui/Screen';
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { saveAcceptedOrder } from '@/lib/briefsDb';
 import { formatPrice } from '@/lib/config';
 import { haptic } from '@/lib/haptics';
+import { createCheckoutSession, openCheckout } from '@/lib/payments';
 import type { Bid } from '@/lib/types';
 import { useBrief } from '@/store/BriefContext';
 
 export default function BidsScreen() {
-  const { spec, bids, selectedBidId, selectBid, bookSelectedBid } = useBrief();
-
+  const { spec, bids, selectedBidId, selectBid, bookSelectedBid, remoteBriefId } = useBrief();
   const sorted = useMemo(() => [...bids].sort((a, b) => a.price - b.price), [bids]);
   const cheapestId = sorted[0]?.id;
   const topRatedId = useMemo(() => [...bids].sort((a, b) => b.rating - a.rating)[0]?.id, [bids]);
   const selected = bids.find((b) => b.id === selectedBidId) ?? null;
   const [confirming, setConfirming] = useState(false);
+  const [accepting, setAccepting] = useState(false);
 
   function openConfirm() {
     if (!selected) return;
@@ -33,11 +35,40 @@ export default function BidsScreen() {
   }
 
   async function confirmAccept() {
+    if (!selected) return;
     setConfirming(false);
-    const order = await bookSelectedBid();
-    haptic.success();
-    router.dismissAll();
-    if (order) router.navigate('/briefs');
+    setAccepting(true);
+
+    try {
+      const remoteOrderId = await saveAcceptedOrder(remoteBriefId, selected);
+      const order = bookSelectedBid();
+      haptic.success();
+
+      if (order) {
+        router.dismissAll();
+        router.navigate('/briefs');
+      }
+
+      if (!remoteOrderId) {
+        Alert.alert(
+          'Order saved locally',
+          'The remote order could not be created yet. Run the latest Supabase migration, then try accepting a new bid.'
+        );
+        return;
+      }
+
+      const checkout = await createCheckoutSession(remoteOrderId);
+      await openCheckout(checkout.url);
+    } catch (error) {
+      Alert.alert(
+        'Payment setup needed',
+        error instanceof Error
+          ? error.message
+          : 'Stripe Checkout could not start. Check your Supabase function secrets and deployment.'
+      );
+    } finally {
+      setAccepting(false);
+    }
   }
 
   return (
@@ -45,25 +76,28 @@ export default function BidsScreen() {
       showBack
       eyebrow="The bids"
       title="Compare offers"
-      subtitle={`${bids.length} vendors responded${spec ? ` · ${spec.title}` : ''}`}
+      subtitle={`${bids.length} vendors responded${spec ? ` - ${spec.title}` : ''}`}
       footer={
         <Button
-          title={selected ? `Accept · ${formatPrice(selected.price)}` : 'Select a bid to continue'}
+          title={selected ? `Accept - ${formatPrice(selected.price)}` : 'Select a bid to continue'}
           iconRight={selected ? 'arrow-right' : undefined}
-          disabled={!selected}
+          disabled={!selected || accepting}
+          loading={accepting}
           onPress={openConfirm}
         />
       }>
-      {selected && (
+      {selected ? (
         <ConfirmDialog
           visible={confirming}
           title={`Accept ${selected.vendorName}?`}
-          message={`${formatPrice(selected.price)} · ready in about ${selected.etaDays} days. Your payment is held in escrow and released only when you confirm the job is done.`}
-          confirmLabel="Confirm & fund escrow"
+          message={`${formatPrice(selected.price)} - ready in about ${selected.etaDays} days. Your payment is held in escrow and released only when you confirm the job is done.`}
+          confirmLabel="Continue to checkout"
+          loading={accepting}
           onConfirm={confirmAccept}
           onCancel={() => setConfirming(false)}
         />
-      )}
+      ) : null}
+
       {sorted.map((bid, i) => (
         <Animated.View key={bid.id} entering={FadeInDown.delay(i * 70).duration(340)}>
           <BidCard
@@ -80,7 +114,7 @@ export default function BidsScreen() {
       ))}
 
       <ThemedText type="small" themeColor="muted">
-        Tap a bid to select it. Payment stays in escrow until you’re satisfied.
+        Tap a bid to select it. Payment stays in escrow until you are satisfied.
       </ThemedText>
     </Screen>
   );
@@ -112,21 +146,25 @@ function BidCard({
           opacity: pressed ? 0.9 : 1,
         },
       ]}>
-      {(isCheapest || isTopRated) && (
+      {isCheapest || isTopRated ? (
         <View style={styles.badgeRow}>
-          {isCheapest && (
+          {isCheapest ? (
             <ThemedText type="eyebrow" style={{ color: theme.tint }}>
               Lowest price
             </ThemedText>
-          )}
-          {isCheapest && isTopRated && <ThemedText type="eyebrow" themeColor="muted">·</ThemedText>}
-          {isTopRated && (
+          ) : null}
+          {isCheapest && isTopRated ? (
+            <ThemedText type="eyebrow" themeColor="muted">
+              -
+            </ThemedText>
+          ) : null}
+          {isTopRated ? (
             <ThemedText type="eyebrow" themeColor="textSecondary">
               Top rated
             </ThemedText>
-          )}
+          ) : null}
         </View>
-      )}
+      ) : null}
 
       <View style={styles.header}>
         <View style={styles.vendor}>
@@ -136,12 +174,12 @@ function BidCard({
               <ThemedText type="subtitle" style={{ fontSize: 19, flexShrink: 1 }} numberOfLines={1}>
                 {bid.vendorName}
               </ThemedText>
-              {bid.verified && <Icon name="check-circle" size={15} color={theme.tint} />}
+              {bid.verified ? <Icon name="check-circle" size={15} color={theme.tint} /> : null}
             </View>
             <View style={styles.metaRow}>
               <Rating value={bid.rating} reviewCount={bid.reviewCount} />
               <ThemedText type="small" themeColor="muted">
-                · {bid.distanceKm} km away
+                - {bid.distanceKm} km away
               </ThemedText>
             </View>
           </View>
@@ -157,13 +195,13 @@ function BidCard({
       </View>
 
       <ThemedText type="serifQuote" themeColor="textSecondary">
-        “{bid.message}”
+        {`"${bid.message}"`}
       </ThemedText>
 
       <View style={styles.highlights}>
         {bid.highlights.map((h, i) => (
           <View key={h} style={styles.highlight}>
-            {i > 0 && <View style={[styles.dot, { backgroundColor: theme.muted }]} />}
+            {i > 0 ? <View style={[styles.dot, { backgroundColor: theme.muted }]} /> : null}
             <ThemedText type="small" themeColor="textSecondary">
               {h}
             </ThemedText>
