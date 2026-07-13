@@ -11,6 +11,7 @@ import { Divider } from '@/components/ui/Divider';
 import { Icon } from '@/components/ui/Icon';
 import { Screen } from '@/components/ui/Screen';
 import { TextField } from '@/components/ui/TextField';
+import { useToast } from '@/components/ui/Toast';
 import { CATEGORIES, formatPrice } from '@/lib/config';
 import {
   deleteMyService,
@@ -59,8 +60,14 @@ export default function VendorDashboardScreen() {
   const [category, setCategory] = useState<CategoryFilter>('all');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [notice, setNotice] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const toast = useToast();
+  // Route feedback through toasts instead of inline text.
+  const setNotice = (m: string | null) => {
+    if (m) toast.success(m);
+  };
+  const setError = (m: string | null) => {
+    if (m) toast.error(m);
+  };
   const [vendorForm, setVendorForm] = useState({
     business_name: profile?.display_name ?? '',
     category_id: CATEGORIES[0].id,
@@ -287,16 +294,6 @@ export default function VendorDashboardScreen() {
           <Button title="Sign out" variant="ghost" iconRight="log-out" onPress={signOut} />
         </View>
       }>
-      {notice ? (
-        <ThemedText type="smallBold" themeColor="success">
-          {notice}
-        </ThemedText>
-      ) : null}
-      {error ? (
-        <ThemedText type="smallBold" themeColor="danger">
-          {error}
-        </ThemedText>
-      ) : null}
 
       <View style={[styles.vendorSetup, { borderColor: theme.border, backgroundColor: theme.card }]}>
         <View style={styles.panelHeader}>

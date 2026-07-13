@@ -1,10 +1,10 @@
-import { router } from 'expo-router';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useState } from 'react';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
-import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
 import { Canvas } from '@/components/ui/Canvas';
 import { Card } from '@/components/ui/Card';
@@ -12,21 +12,84 @@ import { Divider } from '@/components/ui/Divider';
 import { Icon } from '@/components/ui/Icon';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import { formatPrice } from '@/lib/config';
-import type { Order } from '@/lib/types';
+import { listBuyerBriefs, loadBriefDetail, type BuyerBrief } from '@/lib/briefsDb';
+import { haptic } from '@/lib/haptics';
 import { useBrief } from '@/store/BriefContext';
+
+const STATUS: Record<string, { label: string; tone: 'tint' | 'success' | 'muted' }> = {
+  draft: { label: 'Draft', tone: 'muted' },
+  posted: { label: 'Getting bids', tone: 'tint' },
+  bidding: { label: 'Getting bids', tone: 'tint' },
+  booked: { label: 'Booked', tone: 'success' },
+  completed: { label: 'Completed', tone: 'success' },
+  cancelled: { label: 'Cancelled', tone: 'muted' },
+};
 
 export default function BriefsScreen() {
   const theme = useTheme();
-  const { spec, bids, orders } = useBrief();
-  const hasDraft = !!spec;
-  const isEmpty = !hasDraft && orders.length === 0;
+  const { setSpec, setBids, setRemoteBriefId, selectBid } = useBrief();
+  const [briefs, setBriefs] = useState<BuyerBrief[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [opening, setOpening] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const rows = await listBuyerBriefs();
+    setBriefs(rows);
+    setLoading(false);
+  }, []);
+
+  // Reload every time the tab regains focus (e.g. after posting a brief or
+  // switching roles) so posted briefs never look like they vanished.
+  useFocusEffect(
+    useCallback(() => {
+      let alive = true;
+      setLoading(true);
+      listBuyerBriefs().then((rows) => {
+        if (alive) {
+          setBriefs(rows);
+          setLoading(false);
+        }
+      });
+      return () => {
+        alive = false;
+      };
+    }, [])
+  );
+
+  async function openBrief(brief: BuyerBrief) {
+    setOpening(brief.id);
+    try {
+      const detail = await loadBriefDetail(brief.id);
+      if (!detail) return;
+      setSpec(detail.spec);
+      setBids(detail.bids);
+      setRemoteBriefId(brief.id);
+      selectBid(null);
+      router.push('/bids');
+    } finally {
+      setOpening(null);
+    }
+  }
+
+  const isEmpty = !loading && briefs.length === 0;
 
   return (
     <Canvas>
       <SafeAreaView style={styles.safe} edges={['top']}>
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
-          <ThemedText type="title">Briefs</ThemedText>
+          <View style={styles.headerLine}>
+            <ThemedText type="title">Briefs</ThemedText>
+            <Pressable onPress={() => { haptic.light(); void load(); }} hitSlop={12} accessibilityLabel="Refresh">
+              <Icon name="refresh-cw" size={18} color={theme.textSecondary} />
+            </Pressable>
+          </View>
+
+          {loading && briefs.length === 0 ? (
+            <View style={styles.center}>
+              <ActivityIndicator color={theme.tint} />
+            </View>
+          ) : null}
 
           {isEmpty && (
             <Animated.View entering={FadeInDown.duration(340)} style={styles.empty}>
@@ -40,46 +103,37 @@ export default function BriefsScreen() {
             </Animated.View>
           )}
 
-          {/* In-progress draft */}
-          {hasDraft && (
-            <Animated.View entering={FadeInDown.duration(340)}>
-              <Card>
-                <View style={styles.statusRow}>
-                  <View style={[styles.dot, { backgroundColor: bids.length ? theme.tint : theme.muted }]} />
-                  <ThemedText type="eyebrow" style={{ color: bids.length ? theme.tint : theme.muted }}>
-                    {bids.length ? 'Bids in' : 'Draft'}
+          {briefs.map((brief, i) => {
+            const status = STATUS[brief.status] ?? STATUS.posted;
+            const tone = status.tone === 'success' ? theme.success : status.tone === 'muted' ? theme.muted : theme.tint;
+            return (
+              <Animated.View key={brief.id} entering={FadeInDown.delay(i * 60).duration(320)}>
+                <Card>
+                  <View style={styles.statusRow}>
+                    <View style={[styles.dot, { backgroundColor: tone }]} />
+                    <ThemedText type="eyebrow" style={{ color: tone }}>
+                      {status.label}
+                    </ThemedText>
+                    <ThemedText type="eyebrow" themeColor="muted">
+                      · {brief.categoryLabel}
+                    </ThemedText>
+                  </View>
+                  <ThemedText type="subtitle">{brief.title}</ThemedText>
+                  <ThemedText type="small" themeColor="textSecondary" numberOfLines={2}>
+                    {brief.summary}
                   </ThemedText>
-                  <ThemedText type="eyebrow" themeColor="muted">
-                    · {spec!.category.label}
-                  </ThemedText>
-                </View>
-                <ThemedText type="subtitle">{spec!.title}</ThemedText>
-                <ThemedText type="small" themeColor="textSecondary" numberOfLines={2}>
-                  {spec!.summary}
-                </ThemedText>
-                <Divider style={{ marginVertical: Spacing.two }} />
-                {bids.length ? (
-                  <Button title={`Compare ${bids.length} bids`} variant="secondary" iconRight="arrow-right" onPress={() => router.push('/bids')} />
-                ) : (
-                  <Button title="Continue this brief" variant="secondary" iconRight="arrow-right" onPress={() => router.push('/spec')} />
-                )}
-              </Card>
-            </Animated.View>
-          )}
-
-          {/* Booked orders */}
-          {orders.length > 0 && (
-            <View style={{ gap: Spacing.three }}>
-              <ThemedText type="eyebrow" themeColor="muted">
-                Booked · {orders.length}
-              </ThemedText>
-              {orders.map((o, i) => (
-                <Animated.View key={o.id} entering={FadeInDown.delay(i * 60).duration(340)}>
-                  <OrderCard order={o} />
-                </Animated.View>
-              ))}
-            </View>
-          )}
+                  <Divider style={{ marginVertical: Spacing.two }} />
+                  <Button
+                    title={brief.bidCount ? `Compare ${brief.bidCount} bid${brief.bidCount > 1 ? 's' : ''}` : 'View brief'}
+                    variant="secondary"
+                    iconRight="arrow-right"
+                    loading={opening === brief.id}
+                    onPress={() => openBrief(brief)}
+                  />
+                </Card>
+              </Animated.View>
+            );
+          })}
 
           <Button title="Start a new brief" iconRight="arrow-right" onPress={() => router.push('/describe')} style={{ marginTop: Spacing.two }} />
         </ScrollView>
@@ -88,51 +142,12 @@ export default function BriefsScreen() {
   );
 }
 
-function OrderCard({ order }: { order: Order }) {
-  const theme = useTheme();
-  const { spec, bid } = order;
-  return (
-    <Card>
-      <View style={styles.statusRow}>
-        <View style={[styles.dot, { backgroundColor: theme.success }]} />
-        <ThemedText type="eyebrow" style={{ color: theme.success }}>
-          Booked
-        </ThemedText>
-        <ThemedText type="eyebrow" themeColor="muted">
-          · {spec.category.label}
-        </ThemedText>
-      </View>
-      <ThemedText type="subtitle">{spec.title}</ThemedText>
-      <Divider style={{ marginVertical: Spacing.two }} />
-      <View style={styles.vendorRow}>
-        <Avatar name={bid.vendorName} size={42} />
-        <View style={{ flex: 1 }}>
-          <View style={styles.nameLine}>
-            <ThemedText type="label">{bid.vendorName}</ThemedText>
-            {bid.verified && <Icon name="check-circle" size={14} color={theme.tint} />}
-          </View>
-          <ThemedText type="small" themeColor="textSecondary">
-            {formatPrice(bid.price)} · ready in ~{bid.etaDays} days
-          </ThemedText>
-        </View>
-        <View style={[styles.escrow, { borderColor: theme.border }]}>
-          <Icon name="shield" size={13} color={theme.success} />
-          <ThemedText type="small" themeColor="textSecondary">
-            In escrow
-          </ThemedText>
-        </View>
-      </View>
-    </Card>
-  );
-}
-
 const styles = StyleSheet.create({
   safe: { flex: 1 },
   scroll: { paddingHorizontal: Spacing.gutter, paddingTop: Spacing.two, paddingBottom: Spacing.huge, gap: Spacing.four },
+  headerLine: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  center: { paddingVertical: Spacing.six, alignItems: 'center' },
   statusRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
   dot: { width: 7, height: 7, borderRadius: 999 },
-  vendorRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three },
-  nameLine: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  escrow: { flexDirection: 'row', alignItems: 'center', gap: 5, borderWidth: StyleSheet.hairlineWidth, borderRadius: 999, paddingHorizontal: Spacing.two, paddingVertical: 5 },
   empty: { alignItems: 'center', gap: Spacing.three, paddingVertical: Spacing.six },
 });

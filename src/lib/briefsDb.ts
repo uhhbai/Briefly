@@ -1,5 +1,6 @@
+import { getCategory } from '@/lib/config';
 import { supabase } from '@/lib/supabase';
-import type { Bid, StructuredSpec } from '@/lib/types';
+import type { Bid, SpecField, StructuredSpec } from '@/lib/types';
 
 export async function saveBriefWithBids(spec: StructuredSpec, bids: Bid[]): Promise<string | null> {
   try {
@@ -95,6 +96,105 @@ function mapBid(row: BidRow): Bid {
     highlights: row.highlights ?? [],
     distanceKm: Number(row.distance_km),
   };
+}
+
+/** A buyer's posted brief as shown in the persistent Briefs list. */
+export type BuyerBrief = {
+  id: string;
+  title: string;
+  categoryLabel: string;
+  summary: string;
+  status: string;
+  bidCount: number;
+  createdAt: string;
+};
+
+type BuyerBriefRow = {
+  id: string;
+  title: string;
+  category_id: string;
+  summary: string;
+  status: string;
+  created_at: string;
+  bids: { count: number }[] | null;
+};
+
+/** The current buyer's posted briefs (with bid counts), newest first. */
+export async function listBuyerBriefs(): Promise<BuyerBrief[]> {
+  try {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return [];
+
+    const { data, error } = await supabase
+      .from('briefs')
+      .select('id, title, category_id, summary, status, created_at, bids(count)')
+      .eq('buyer_id', user.id)
+      .order('created_at', { ascending: false });
+
+    if (error || !data) return [];
+    return (data as BuyerBriefRow[]).map((row) => ({
+      id: row.id,
+      title: row.title,
+      categoryLabel: getCategory(row.category_id).label,
+      summary: row.summary,
+      status: row.status,
+      bidCount: row.bids?.[0]?.count ?? 0,
+      createdAt: row.created_at,
+    }));
+  } catch {
+    return [];
+  }
+}
+
+/** Reconstruct a persisted brief + its bids into the shapes the Bids screen uses. */
+export async function loadBriefDetail(briefId: string): Promise<{ spec: StructuredSpec; bids: Bid[] } | null> {
+  try {
+    const { data, error } = await supabase
+      .from('briefs')
+      .select(
+        'id, title, category_id, raw_text, summary, budget_realistic, budget_note, brief_fields(field_key, label, emoji, value)'
+      )
+      .eq('id', briefId)
+      .maybeSingle();
+
+    if (error || !data) return null;
+
+    const row = data as {
+      title: string;
+      category_id: string;
+      raw_text: string;
+      summary: string;
+      budget_realistic: boolean | null;
+      budget_note: string | null;
+      brief_fields: { field_key: string; label: string; emoji: string; value: string | null }[] | null;
+    };
+
+    const fields: SpecField[] = (row.brief_fields ?? []).map((f) => ({
+      key: f.field_key,
+      label: f.label,
+      emoji: f.emoji,
+      value: f.value,
+    }));
+
+    const spec: StructuredSpec = {
+      title: row.title,
+      category: getCategory(row.category_id),
+      rawText: row.raw_text,
+      fields,
+      summary: row.summary,
+      budgetSanity:
+        row.budget_realistic === null
+          ? undefined
+          : { realistic: row.budget_realistic, note: row.budget_note ?? '' },
+    };
+
+    const bids = await loadBidsForBrief(briefId);
+    return { spec, bids };
+  } catch {
+    return null;
+  }
 }
 
 /**

@@ -16,29 +16,51 @@ type Props = {
   eyebrow?: string;
   subtitle?: string;
   showBack?: boolean;
+  /** Show a Home shortcut (top-right) that returns to the tabs. */
+  showHome?: boolean;
   /** Sticky content pinned to the bottom (e.g. a primary Button). */
   footer?: React.ReactNode;
   scroll?: boolean;
 };
 
-export function Screen({ children, title, eyebrow, subtitle, showBack, footer, scroll = true }: Props) {
+export function Screen({ children, title, eyebrow, subtitle, showBack, showHome, footer, scroll = true }: Props) {
   const theme = useTheme();
 
   const header =
-    showBack || title ? (
+    showBack || showHome || title ? (
       <View style={styles.header}>
-        {showBack && (
-          <Pressable
-            onPress={() => {
-              haptic.light();
-              router.back();
-            }}
-            hitSlop={14}
-            accessibilityRole="button"
-            accessibilityLabel="Go back"
-            style={styles.back}>
-            <Icon name="arrow-left" size={22} color={theme.text} />
-          </Pressable>
+        {(showBack || showHome) && (
+          <View style={styles.navRow}>
+            {showBack ? (
+              <Pressable
+                onPress={() => {
+                  haptic.light();
+                  if (router.canGoBack()) router.back();
+                  else router.replace('/(tabs)');
+                }}
+                hitSlop={14}
+                accessibilityRole="button"
+                accessibilityLabel="Go back"
+                style={styles.back}>
+                <Icon name="arrow-left" size={22} color={theme.text} />
+              </Pressable>
+            ) : (
+              <View />
+            )}
+            {showHome ? (
+              <Pressable
+                onPress={() => {
+                  haptic.light();
+                  router.replace('/(tabs)');
+                }}
+                hitSlop={14}
+                accessibilityRole="button"
+                accessibilityLabel="Go home"
+                style={[styles.homeBtn, { borderColor: theme.border, backgroundColor: theme.card }]}>
+                <Icon name="home" size={17} color={theme.text} />
+              </Pressable>
+            ) : null}
+          </View>
         )}
         {title && (
           <View>
@@ -101,7 +123,16 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: { gap: Spacing.three },
+  navRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   back: { width: 40, height: 40, justifyContent: 'center', marginLeft: -8 },
+  homeBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 999,
+    borderWidth: StyleSheet.hairlineWidth,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   footer: {
     borderTopWidth: StyleSheet.hairlineWidth,
     paddingHorizontal: Spacing.gutter,

@@ -1,6 +1,5 @@
-import { DarkTheme, DefaultTheme, Stack, ThemeProvider, useRouter, useSegments } from 'expo-router';
+import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
 import { View, useColorScheme } from 'react-native';
 
 import { Fraunces_400Regular } from '@expo-google-fonts/fraunces/400Regular';
@@ -17,6 +16,7 @@ import { useFonts } from 'expo-font';
 
 import { AuthGate } from '@/components/auth/AuthGate';
 import { RoleRedirect } from '@/components/auth/RoleRedirect';
+import { ToastProvider } from '@/components/ui/Toast';
 import { useTheme } from '@/hooks/use-theme';
 import { AuthProvider } from '@/store/AuthContext';
 import { BriefProvider } from '@/store/BriefContext';
@@ -45,48 +45,25 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider value={navTheme}>
-      <AuthProvider>
-        <AuthGate>
-          <BriefProvider>
-            <RoleRedirect />
-            <Stack screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
-              <Stack.Screen name="(tabs)" />
-              <Stack.Screen name="vendor-dashboard" />
-              <Stack.Screen name="describe" options={{ animation: 'slide_from_bottom' }} />
-              <Stack.Screen name="builder" />
-              <Stack.Screen name="spec" />
-              <Stack.Screen name="bids" />
-            </Stack>
-            <StatusBar style="auto" />
-          </BriefProvider>
-        </AuthGate>
-      </AuthProvider>
+      <ToastProvider>
+        <AuthProvider>
+          <AuthGate>
+            <BriefProvider>
+              <RoleRedirect />
+              <Stack screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
+                <Stack.Screen name="(tabs)" />
+                <Stack.Screen name="vendor-dashboard" />
+                <Stack.Screen name="describe" options={{ animation: 'slide_from_bottom' }} />
+                <Stack.Screen name="builder" />
+                <Stack.Screen name="spec" />
+                <Stack.Screen name="bids" />
+                <Stack.Screen name="account" />
+              </Stack>
+              <StatusBar style="auto" />
+            </BriefProvider>
+          </AuthGate>
+        </AuthProvider>
+      </ToastProvider>
     </ThemeProvider>
-  );
-}
-
-function RootNavigator() {
-  const router = useRouter();
-  const segments = useSegments();
-  const { ready, userId, isGuest } = useSession();
-
-  useEffect(() => {
-    if (!ready) return;
-    const inAuth = segments[0] === 'auth';
-    const allowed = Boolean(userId || isGuest);
-
-    if (!allowed && !inAuth) router.replace('/auth');
-    if (allowed && inAuth) router.replace('/(tabs)');
-  }, [isGuest, ready, router, segments, userId]);
-
-  return (
-    <Stack screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
-      <Stack.Screen name="auth" options={{ animation: 'fade' }} />
-      <Stack.Screen name="(tabs)" />
-      <Stack.Screen name="describe" options={{ animation: 'slide_from_bottom' }} />
-      <Stack.Screen name="builder" />
-      <Stack.Screen name="spec" />
-      <Stack.Screen name="bids" />
-    </Stack>
   );
 }

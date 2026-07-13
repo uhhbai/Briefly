@@ -20,4 +20,8 @@ export const haptic = {
   select: () => on && safe(Haptics.selectionAsync()),
   /** Success buzz — booking confirmed. */
   success: () => on && safe(Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)),
+  /** Warning buzz — something needs attention. */
+  warning: () => on && safe(Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning)),
+  /** Error buzz — an action failed. */
+  error: () => on && safe(Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error)),
 };

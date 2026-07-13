@@ -59,9 +59,9 @@
     "db:migrations": "npx supabase migration list",
     "functions:serve": "npx supabase functions serve",
     "functions:deploy:checkout": "npx supabase functions deploy create-checkout-session",
-    "functions:deploy:webhook": "npx supabase functions deploy stripe-webhook",
+    "functions:deploy:webhook": "npx supabase functions deploy stripe-webhook --no-verify-jwt",
     "functions:deploy:notify": "npx supabase functions deploy notify-bid",
-    "functions:deploy": "npx supabase functions deploy create-checkout-session && npx supabase functions deploy stripe-webhook && npx supabase functions deploy notify-bid"
+    "functions:deploy": "npx supabase functions deploy create-checkout-session && npx supabase functions deploy notify-bid && npx supabase functions deploy stripe-webhook --no-verify-jwt"
   },
   "private": true
 }

@@ -1,6 +1,10 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.110.0';
 
-import { corsHeaders } from '../_shared/cors.ts';
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+};
 
 // Sends the buyer a Telegram message when a vendor bids on their brief.
 // Secrets required: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, TELEGRAM_BOT_TOKEN.
@@ -30,7 +34,37 @@ Deno.serve(async (req) => {
     } = await admin.auth.getUser(token);
     if (userError || !user) return json({ error: 'Invalid authorization.' }, 401);
 
-    const { briefId, vendorName, price } = await req.json();
+    const payload = await req.json();
+
+    // Test mode: send a sample message to the CALLER's own linked chat so a
+    // buyer can confirm their chat id + bot setup from Settings.
+    if (payload?.test === true) {
+      // Soft outcomes return 200 with a reason so the app can explain clearly.
+      if (!telegramBotToken) return json({ sent: false, reason: 'no_bot_token' });
+      const { data: me } = await admin
+        .from('profiles')
+        .select('telegram_chat_id')
+        .eq('id', user.id)
+        .maybeSingle();
+      const myChatId = me?.telegram_chat_id?.trim();
+      if (!myChatId) return json({ sent: false, reason: 'no_chat_id' });
+
+      const testRes = await fetch(`https://api.telegram.org/bot${telegramBotToken}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: myChatId,
+          text: '✅ Briefly is connected. You will get a message here whenever a vendor bids on your brief.',
+        }),
+      });
+      if (!testRes.ok) {
+        const detail = await testRes.text();
+        return json({ sent: false, reason: 'telegram_error', detail });
+      }
+      return json({ sent: true });
+    }
+
+    const { briefId, vendorName, price } = payload;
     if (!briefId || typeof briefId !== 'string') {
       return json({ error: 'Missing briefId.' }, 400);
     }
