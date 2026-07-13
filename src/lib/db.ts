@@ -116,6 +116,13 @@ export async function fetchServicesByVendor(vendorId: string): Promise<Service[]
   return data.map(toService);
 }
 
+export async function fetchService(id: string): Promise<Service | null> {
+  if (!isSupabaseConfigured) return mock.SERVICES.find((s) => s.id === id) ?? null;
+  const { data, error } = await supabase.from('services').select('*').eq('id', id).single();
+  if (error || !data) return mock.SERVICES.find((s) => s.id === id) ?? null;
+  return toService(data);
+}
+
 export async function fetchFeaturedVendors(): Promise<Vendor[]> {
   const vendors = await fetchVendors();
   return [...vendors].sort((a, b) => b.rating - a.rating).slice(0, 5);

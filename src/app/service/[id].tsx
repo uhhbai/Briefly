@@ -1,4 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
+import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -14,17 +15,40 @@ import { PressableScale } from '@/components/ui/PressableScale';
 import { Rating } from '@/components/ui/Rating';
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import { getVendor, SERVICES } from '@/lib/catalog';
 import { formatPrice, getCategory } from '@/lib/config';
+import { fetchService, fetchVendor } from '@/lib/db';
 import { haptic } from '@/lib/haptics';
+import type { Service, Vendor } from '@/lib/types';
 
 const INCLUDED = ['Free consultation & measurements', 'Made to order, to your exact spec', 'Delivery & setup', 'Escrow-protected payment'];
 
 export default function ServiceDetail() {
   const theme = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const service = SERVICES.find((s) => s.id === id);
-  const vendor = service ? getVendor(service.vendorId) : undefined;
+  const [service, setService] = useState<Service | null | undefined>(undefined);
+  const [vendor, setVendor] = useState<Vendor | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    if (!id) return;
+    fetchService(id).then(async (nextService) => {
+      const nextVendor = nextService ? await fetchVendor(nextService.vendorId) : null;
+      if (!active) return;
+      setService(nextService);
+      setVendor(nextVendor);
+    });
+    return () => {
+      active = false;
+    };
+  }, [id]);
+
+  if (service === undefined) {
+    return (
+      <SafeAreaView style={[styles.safe, { backgroundColor: theme.background }]}>
+        <ThemedText style={{ padding: Spacing.four }}>Loading listing...</ThemedText>
+      </SafeAreaView>
+    );
+  }
 
   if (!service) {
     return (

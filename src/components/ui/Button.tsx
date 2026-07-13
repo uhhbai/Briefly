@@ -40,9 +40,11 @@ export function Button({ title, onPress, variant = 'primary', disabled, loading,
       onPressIn={() => {
         if (isDisabled) return;
         haptic.medium();
+        // eslint-disable-next-line react-hooks/immutability
         scale.value = withTiming(0.98, { duration: 90 });
       }}
       onPressOut={() => {
+        // eslint-disable-next-line react-hooks/immutability
         scale.value = withSpring(1, { damping: 14, stiffness: 240 });
       }}
       style={[

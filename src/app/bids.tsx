@@ -32,9 +32,9 @@ export default function BidsScreen() {
     setConfirming(true);
   }
 
-  function confirmAccept() {
+  async function confirmAccept() {
     setConfirming(false);
-    const order = bookSelectedBid();
+    const order = await bookSelectedBid();
     haptic.success();
     router.dismissAll();
     if (order) router.navigate('/briefs');

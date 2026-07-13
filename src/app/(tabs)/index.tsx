@@ -1,4 +1,5 @@
 import { router } from 'expo-router';
+import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -13,15 +14,31 @@ import { KenBurns } from '@/components/ui/KenBurns';
 import { Logo } from '@/components/ui/Logo';
 import { Spacing, Type } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import { featuredVendors, popularServices } from '@/lib/catalog';
 import { CATEGORIES } from '@/lib/config';
+import { fetchCategories, fetchFeaturedVendors, fetchPopularServices } from '@/lib/db';
 import { HERO_IMAGE } from '@/lib/images';
+import type { Category, Service, Vendor } from '@/lib/types';
 
 export default function DiscoverScreen() {
   const theme = useTheme();
-  const vendors = featuredVendors();
-  const services = popularServices();
-  const cats = CATEGORIES.filter((c) => c.id !== 'other');
+  const [cats, setCats] = useState<Category[]>(CATEGORIES.filter((c) => c.id !== 'other'));
+  const [vendors, setVendors] = useState<Vendor[]>([]);
+  const [services, setServices] = useState<Service[]>([]);
+
+  useEffect(() => {
+    let active = true;
+    Promise.all([fetchCategories(), fetchFeaturedVendors(), fetchPopularServices()]).then(
+      ([nextCats, nextVendors, nextServices]) => {
+        if (!active) return;
+        setCats(nextCats.filter((c) => c.id !== 'other'));
+        setVendors(nextVendors);
+        setServices(nextServices);
+      }
+    );
+    return () => {
+      active = false;
+    };
+  }, []);
 
   return (
     <Canvas>

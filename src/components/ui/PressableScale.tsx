@@ -36,9 +36,11 @@ export function PressableScale({
       onPress={onPress}
       onPressIn={() => {
         if (haptics) haptic.light();
+        // eslint-disable-next-line react-hooks/immutability
         scale.value = withTiming(scaleTo, { duration: 90 });
       }}
       onPressOut={() => {
+        // eslint-disable-next-line react-hooks/immutability
         scale.value = withSpring(1, { damping: 12, stiffness: 220 });
       }}
       style={[animatedStyle, style]}>

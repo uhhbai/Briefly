@@ -1,5 +1,5 @@
 import { useLocalSearchParams } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import Animated, { FadeInDown, LinearTransition } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -12,26 +12,48 @@ import { Divider } from '@/components/ui/Divider';
 import { Icon } from '@/components/ui/Icon';
 import { Radius, Spacing, Type } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import { searchCatalog } from '@/lib/catalog';
 import { CATEGORIES } from '@/lib/config';
-import type { CategoryId } from '@/lib/types';
+import { fetchCategories, searchCatalog } from '@/lib/db';
+import type { Category, CategoryId, Service, Vendor } from '@/lib/types';
 
 export default function BrowseScreen() {
   const theme = useTheme();
   const params = useLocalSearchParams<{ category?: string }>();
   const [query, setQuery] = useState('');
   const [activeCat, setActiveCat] = useState<CategoryId | 'all'>((params.category as CategoryId) ?? 'all');
+  const [cats, setCats] = useState<Category[]>(CATEGORIES.filter((c) => c.id !== 'other'));
+  const [vendors, setVendors] = useState<Vendor[]>([]);
+  const [services, setServices] = useState<Service[]>([]);
 
-  const { vendors, services } = useMemo(() => {
-    const base = searchCatalog(query);
-    if (activeCat === 'all') return base;
-    return {
-      vendors: base.vendors.filter((v) => v.categoryId === activeCat),
-      services: base.services.filter((s) => s.categoryId === activeCat),
+  useEffect(() => {
+    let active = true;
+    fetchCategories().then((nextCats) => {
+      if (active) setCats(nextCats.filter((c) => c.id !== 'other'));
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    searchCatalog(query).then((base) => {
+      if (!active) return;
+      const next =
+        activeCat === 'all'
+          ? base
+          : {
+              vendors: base.vendors.filter((v) => v.categoryId === activeCat),
+              services: base.services.filter((s) => s.categoryId === activeCat),
+            };
+      setVendors(next.vendors);
+      setServices(next.services);
+    });
+    return () => {
+      active = false;
     };
   }, [query, activeCat]);
 
-  const cats = CATEGORIES.filter((c) => c.id !== 'other');
   const empty = vendors.length === 0 && services.length === 0;
 
   return (

@@ -10,10 +10,14 @@ type FeatherName = keyof typeof Feather.glyphMap;
 export default function TabsLayout() {
   const theme = useTheme();
 
-  const icon =
-    (name: FeatherName) =>
-    ({ color }: { color: ColorValue }) =>
-      <Feather name={name} size={21} color={color as string} />;
+  const icon = (name: FeatherName) => {
+    function TabBarIcon({ color }: { color: ColorValue }) {
+      return <Feather name={name} size={21} color={color as string} />;
+    }
+    // eslint-disable-next-line react-hooks/immutability
+    TabBarIcon.displayName = `TabBarIcon(${name})`;
+    return TabBarIcon;
+  };
 
   return (
     <Tabs

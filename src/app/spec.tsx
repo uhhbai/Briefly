@@ -10,6 +10,7 @@ import { Screen } from '@/components/ui/Screen';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { generateBids } from '@/lib/ai';
+import { createBrief, saveBids } from '@/lib/db';
 import { useBrief } from '@/store/BriefContext';
 
 export default function SpecScreen() {
@@ -29,7 +30,9 @@ export default function SpecScreen() {
     setLoading(true);
     try {
       const bids = await generateBids(spec!);
-      setBids(bids);
+      const briefId = await createBrief(spec!);
+      const savedBids = briefId ? await saveBids(briefId, bids) : bids;
+      setBids(savedBids, briefId);
       router.push('/bids');
     } finally {
       setLoading(false);

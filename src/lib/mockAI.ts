@@ -250,9 +250,6 @@ const VENDOR_POOL: { name: string; avatar: string; verified: boolean; rating: nu
   { name: 'PrecisionPrint Co.', avatar: '🖨️', verified: true, rating: 4.6, reviews: 102 },
 ];
 
-function pick<T>(arr: T[]): T {
-  return arr[Math.floor(Math.random() * arr.length)];
-}
 
 export async function generateBids(spec: StructuredSpec): Promise<Bid[]> {
   await delay(1200);

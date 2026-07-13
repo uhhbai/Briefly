@@ -3,12 +3,14 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
+import { Button } from '@/components/ui/Button';
 import { Canvas } from '@/components/ui/Canvas';
 import { Divider } from '@/components/ui/Divider';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { Spacing, Radius } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { haptic } from '@/lib/haptics';
+import { useSession } from '@/store/SessionProvider';
 
 const MENU: { icon: IconName; label: string; hint?: string }[] = [
   { icon: 'tool', label: 'Become a vendor', hint: 'Earn by bidding on briefs' },
@@ -27,6 +29,7 @@ const STATS = [
 
 export default function ProfileScreen() {
   const theme = useTheme();
+  const { email, isGuest, signOut } = useSession();
 
   return (
     <Canvas>
@@ -40,9 +43,9 @@ export default function ProfileScreen() {
             <Icon name="user" size={24} color={theme.textSecondary} />
           </View>
           <View>
-            <ThemedText type="subtitle">Guest</ThemedText>
+            <ThemedText type="subtitle">{isGuest ? 'Guest' : email ?? 'Account'}</ThemedText>
             <ThemedText type="small" themeColor="textSecondary">
-              Singapore · Joined 2026
+              {isGuest ? 'Demo mode' : 'Signed in'} · Singapore
             </ThemedText>
           </View>
         </Animated.View>
@@ -87,6 +90,8 @@ export default function ProfileScreen() {
             </Animated.View>
           ))}
         </View>
+
+        <Button title={isGuest ? 'Leave guest mode' : 'Sign out'} variant="secondary" iconRight="log-out" onPress={signOut} />
 
         <ThemedText type="small" themeColor="muted" style={{ textAlign: 'center', marginTop: Spacing.four }}>
           Briefly v1.0 · beta

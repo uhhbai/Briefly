@@ -1,74 +1,54 @@
-/**
- * Briefly design system — "Editorial Commerce".
- *
- * Modelled on the restraint of Aesop / 1stDibs: ink on bone paper, a single
- * sienna accent used sparingly, hierarchy carried by a serif display
- * (Fraunces) against a neutral sans (Inter) — never by colour or decoration.
- * Generous negative space, hairline rules instead of boxes, real photography.
- *
- * Principles enforced here:
- *   1. Monochrome base + ONE accent. Colour is an event, not a texture.
- *   2. Type is the brand: Fraunces for voice, Inter for information.
- *   3. Whitespace doubled — sections breathe (see Spacing.section / .huge).
- */
-
 import '@/global.css';
 
 import { Platform } from 'react-native';
 
 export const Colors = {
   light: {
-    text: '#1C1A16', // warm near-black ink
-    textSecondary: '#5C554A',
-    muted: '#938A7B',
-    background: '#ECE6DA', // bone paper
-    backgroundElement: '#F4F0E7', // raised bone
-    backgroundSelected: '#E1DACB',
-    card: '#F4F0E7',
-    border: '#D6CDBC', // warm hairline
-    tint: '#9C4226', // deep sienna — the only accent
-    tintText: '#F7F3EA',
-    tintSoft: '#E6DCCB',
-    accent: '#9C4226',
-    success: '#3F6B4F',
-    successBg: '#DCE6DB',
-    warning: '#8E6320',
-    danger: '#9B3022',
-    onImage: '#F7F3EA', // text laid over photography
-    scrim: 'rgba(20,16,10,0.42)',
-    /** Letterbox surround when framed as a phone on wide screens. */
-    frame: '#D9CFBE',
+    text: '#101828',
+    textSecondary: '#475467',
+    muted: '#7A869A',
+    background: '#F5F8FF',
+    backgroundElement: '#FFFFFF',
+    backgroundSelected: '#E7F0FF',
+    card: 'rgba(255,255,255,0.86)',
+    border: '#D7E0EF',
+    tint: '#0E9384',
+    tintText: '#F7FEFF',
+    tintSoft: '#D7F7F2',
+    accent: '#6953D3',
+    success: '#079455',
+    successBg: '#DDF8E7',
+    warning: '#B54708',
+    danger: '#D92D20',
+    onImage: '#F8FBFF',
+    scrim: 'rgba(16,24,40,0.36)',
+    frame: '#D9E6F7',
   },
   dark: {
-    text: '#EFE6D6',
-    textSecondary: '#B0A28E',
-    muted: '#867764',
-    background: '#2A2018', // warm espresso brown (not black)
-    backgroundElement: '#352A20',
-    backgroundSelected: '#413427',
-    card: '#352A20',
-    border: '#48392B',
-    tint: '#DA7D4F', // warm sienna, lifted for contrast on brown
-    tintText: '#241B12',
-    tintSoft: '#3C2E20',
-    accent: '#DA7D4F',
-    success: '#85A56E',
-    successBg: '#2A331E',
-    warning: '#D69C54',
-    danger: '#DC7A5E',
-    onImage: '#F6F1E8',
-    scrim: 'rgba(10,7,4,0.5)',
-    frame: '#0E0B07',
+    text: '#F5FAFF',
+    textSecondary: '#B7C5D8',
+    muted: '#7F8EA3',
+    background: '#07111F',
+    backgroundElement: '#101A2B',
+    backgroundSelected: '#16263D',
+    card: 'rgba(16,26,43,0.84)',
+    border: '#26364D',
+    tint: '#2DD4BF',
+    tintText: '#031B1A',
+    tintSoft: '#123C3B',
+    accent: '#A78BFA',
+    success: '#6CE9A6',
+    successBg: '#0B3320',
+    warning: '#FEC84B',
+    danger: '#FDA29B',
+    onImage: '#F8FBFF',
+    scrim: 'rgba(3,9,18,0.56)',
+    frame: '#030712',
   },
 } as const;
 
 export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
 
-/**
- * Type families. Loaded in the root layout via expo-font. Each constant maps
- * to a baked-weight family, so we set `fontFamily` and never `fontWeight`
- * (which would synthesize an incorrect weight over a custom face).
- */
 export const Type = {
   serif: 'Fraunces_600SemiBold',
   serifMedium: 'Fraunces_500Medium',
@@ -96,9 +76,7 @@ export const Spacing = {
   four: 24,
   five: 32,
   six: 64,
-  /** Horizontal page margin — a touch wider than the old 16 for air. */
   gutter: 22,
-  /** Vertical rhythm between major sections. */
   section: 48,
   huge: 80,
 } as const;
@@ -106,30 +84,28 @@ export const Spacing = {
 export const BottomTabInset = Platform.select({ ios: 50, android: 80 }) ?? 0;
 export const MaxContentWidth = 760;
 
-/** Squared, refined corners — editorial commerce barely rounds anything. */
 export const Radius = {
   none: 0,
-  sm: 4,
-  md: 8,
-  lg: 12,
-  xl: 16,
+  sm: 6,
+  md: 10,
+  lg: 14,
+  xl: 18,
   pill: 999,
 } as const;
 
-/** Used rarely. Editorial UI separates with hairlines, not shadows. */
 export const Shadow = {
   card: {
-    shadowColor: '#2A1C10',
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
+    shadowColor: '#0B1220',
+    shadowOpacity: 0.1,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 10 },
     elevation: 3,
   },
   float: {
-    shadowColor: '#2A1C10',
-    shadowOpacity: 0.14,
-    shadowRadius: 22,
-    shadowOffset: { width: 0, height: 12 },
+    shadowColor: '#0B1220',
+    shadowOpacity: 0.18,
+    shadowRadius: 26,
+    shadowOffset: { width: 0, height: 16 },
     elevation: 10,
   },
 } as const;
