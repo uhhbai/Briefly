@@ -35,7 +35,13 @@
           }
         }
       ],
-      "expo-image"
+      "expo-image",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Briefly needs access to your photos so you can upload your company logo and service images."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

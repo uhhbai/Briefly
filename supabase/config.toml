@@ -1,0 +1,16 @@
+# Briefly Supabase project config.
+# project_id is your project ref (from the dashboard URL / EXPO_PUBLIC_SUPABASE_URL).
+project_id = "aqyigmhamqqedyiifwvs"
+
+# Stripe calls this endpoint with a signature header, NOT a Supabase user JWT.
+# It must skip JWT verification or every webhook is rejected with 401 and orders
+# never move to "funded" — the #1 cause of "payments look like they don't work".
+[functions.stripe-webhook]
+verify_jwt = false
+
+# These are called from the app with the signed-in user's JWT — keep verification on.
+[functions.create-checkout-session]
+verify_jwt = true
+
+[functions.notify-bid]
+verify_jwt = true

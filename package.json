@@ -20,6 +20,7 @@
     "expo-glass-effect": "~56.0.4",
     "expo-haptics": "~56.0.3",
     "expo-image": "~56.0.11",
+    "expo-image-picker": "~56.0.20",
     "expo-linear-gradient": "~56.0.4",
     "expo-linking": "~56.0.15",
     "expo-router": "~56.2.14",
@@ -59,7 +60,8 @@
     "functions:serve": "npx supabase functions serve",
     "functions:deploy:checkout": "npx supabase functions deploy create-checkout-session",
     "functions:deploy:webhook": "npx supabase functions deploy stripe-webhook",
-    "functions:deploy": "npx supabase functions deploy create-checkout-session && npx supabase functions deploy stripe-webhook"
+    "functions:deploy:notify": "npx supabase functions deploy notify-bid",
+    "functions:deploy": "npx supabase functions deploy create-checkout-session && npx supabase functions deploy stripe-webhook && npx supabase functions deploy notify-bid"
   },
   "private": true
 }

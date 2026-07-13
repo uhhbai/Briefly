@@ -111,6 +111,7 @@ export default function ProfileScreen() {
   const [supportMessage, setSupportMessage] = useState('');
   const [settingsName, setSettingsName] = useState('');
   const [settingsLocation, setSettingsLocation] = useState('');
+  const [settingsTelegram, setSettingsTelegram] = useState('');
   const [checkoutOrderId, setCheckoutOrderId] = useState<string | null>(null);
 
   const unreadCount = notifications.filter((item) => !item.read_at).length;
@@ -344,9 +345,11 @@ export default function ProfileScreen() {
   async function saveSettings() {
     setSaving('settings');
     try {
+      const telegram = (settingsTelegram || profile?.telegram_chat_id || '').trim();
       await updateProfile({
         display_name: settingsName.trim() || profile?.display_name || 'Briefly user',
         location: settingsLocation.trim() || profile?.location || 'Singapore',
+        telegram_chat_id: telegram || null,
       });
       showNotice('Profile settings saved.');
     } catch (err) {
@@ -606,6 +609,16 @@ export default function ProfileScreen() {
           onChangeText={setSettingsLocation}
           placeholder="Singapore"
         />
+        <TextField
+          label="Telegram chat ID"
+          value={settingsTelegram || profile?.telegram_chat_id || ''}
+          onChangeText={setSettingsTelegram}
+          placeholder="e.g. 123456789"
+          keyboardType="number-pad"
+        />
+        <ThemedText type="small" themeColor="muted">
+          Get bid alerts on Telegram: message @userinfobot to find your chat ID, paste it here, then start a chat with the Briefly bot.
+        </ThemedText>
         <Button title="Save settings" iconRight="check-circle" loading={saving === 'settings'} onPress={saveSettings} />
         <Button title="Sign out" variant="ghost" iconRight="log-out" loading={saving === 'signout'} onPress={handleSignOut} />
       </Panel>

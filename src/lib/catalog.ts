@@ -5,6 +5,7 @@
  * Swap for Supabase queries later; the screens read via the helpers below.
  */
 
+import { getCategory } from '@/lib/config';
 import { img } from '@/lib/images';
 import { supabase } from '@/lib/supabase';
 import type { CategoryId, Service, Vendor } from '@/lib/types';
@@ -289,7 +290,8 @@ type ServiceRow = {
   id: string;
   title: string;
   category_id: CategoryId;
-  vendor_id: string;
+  vendor_id: string | null;
+  vendor_profile_id: string | null;
   emoji: string | null;
   price_from: number;
   rating: number;
@@ -298,6 +300,16 @@ type ServiceRow = {
   gradient_from: string;
   gradient_to: string;
   image: string;
+};
+
+type VendorProfileRow = {
+  id: string;
+  business_name: string;
+  category_id: string;
+  bio: string | null;
+  service_area: string | null;
+  verified: boolean;
+  logo_url: string | null;
 };
 
 export type CatalogData = {
@@ -329,7 +341,9 @@ function mapService(row: ServiceRow): Service {
     id: row.id,
     title: row.title,
     categoryId: row.category_id,
-    vendorId: row.vendor_id,
+    // Vendor-created listings link to a vendor_profile; prefix so it maps to
+    // the synthesised vendor built from that profile below.
+    vendorId: row.vendor_id ?? (row.vendor_profile_id ? `vp_${row.vendor_profile_id}` : ''),
     emoji: row.emoji ?? '',
     priceFrom: row.price_from,
     rating: Number(row.rating),
@@ -340,21 +354,59 @@ function mapService(row: ServiceRow): Service {
   };
 }
 
+function mapVendorProfile(row: VendorProfileRow, services: Service[]): Vendor {
+  const categoryId: CategoryId = CATEGORY_IDS.has(row.category_id) ? (row.category_id as CategoryId) : 'other';
+  const category = getCategory(categoryId);
+  const own = services.filter((s) => s.vendorId === `vp_${row.id}`);
+  const priceFrom = own.length ? Math.min(...own.map((s) => s.priceFrom)) : 0;
+  return {
+    id: `vp_${row.id}`,
+    name: row.business_name,
+    avatar: '',
+    categoryId,
+    tagline: row.bio?.trim() || `${category.label} on Briefly`,
+    rating: 0,
+    reviewCount: 0,
+    jobsDone: 0,
+    verified: row.verified,
+    priceFrom,
+    location: row.service_area?.trim() || 'Singapore',
+    gradient: category.gradient,
+    image: row.logo_url || category.image,
+  };
+}
+
+const CATEGORY_IDS = new Set<string>(['furniture', 'painting', 'renovation', 'printing', 'apparel', 'other']);
+
 function localCatalog(): CatalogData {
   return { vendors: VENDORS, services: SERVICES, source: 'local' };
 }
 
 export async function loadCatalog(): Promise<CatalogData> {
   try {
-    const [vendorsResult, servicesResult] = await Promise.all([
+    const [vendorsResult, servicesResult, vendorProfilesResult] = await Promise.all([
       supabase.from('vendors').select('*').order('rating', { ascending: false }),
       supabase.from('services').select('*').order('review_count', { ascending: false }),
+      supabase
+        .from('vendor_profiles')
+        .select('id, business_name, category_id, bio, service_area, verified, logo_url'),
     ]);
 
     if (vendorsResult.error || servicesResult.error) return localCatalog();
 
-    const vendors = ((vendorsResult.data ?? []) as VendorRow[]).map(mapVendor);
     const services = ((servicesResult.data ?? []) as ServiceRow[]).map(mapService);
+    const seedVendors = ((vendorsResult.data ?? []) as VendorRow[]).map(mapVendor);
+
+    // Turn each vendor profile that owns at least one listing into a browsable maker.
+    const profileRows = (vendorProfilesResult.data ?? []) as VendorProfileRow[];
+    const listedProfileIds = new Set(
+      services.map((s) => s.vendorId).filter((id) => id.startsWith('vp_')).map((id) => id.slice(3))
+    );
+    const vendorProfiles = profileRows
+      .filter((row) => listedProfileIds.has(row.id))
+      .map((row) => mapVendorProfile(row, services));
+
+    const vendors = [...vendorProfiles, ...seedVendors];
 
     if (!vendors.length || !services.length) return localCatalog();
     return { vendors, services, source: 'supabase' };

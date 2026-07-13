@@ -49,8 +49,19 @@ function normalizeSupabaseUrl(rawUrl: string | undefined) {
 }
 
 const supabaseUrl = normalizeSupabaseUrl(process.env.EXPO_PUBLIC_SUPABASE_URL);
-const supabasePublishableKey = process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY!;
-const hasLocalStorage = typeof localStorage !== 'undefined';
+// Accept either the newer publishable key or the classic anon key so a project
+// set up with either naming convention connects without silent 401s.
+const supabasePublishableKey =
+  process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+if (!supabasePublishableKey) {
+  throw new Error(
+    'Missing Supabase key. Set EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY (or EXPO_PUBLIC_SUPABASE_ANON_KEY) in your .env.'
+  );
+}
+// Node's static-render environment can expose a partial `localStorage` shim
+// that lacks getItem/setItem — guard on the methods, not just the global.
+const hasLocalStorage =
+  typeof localStorage !== 'undefined' && typeof localStorage.getItem === 'function';
 const realtimeTransport = typeof WebSocket !== 'undefined' ? WebSocket : NoopWebSocket;
 const storage = Platform.OS === 'web' ? (hasLocalStorage ? localStorage : undefined) : AsyncStorage;
 

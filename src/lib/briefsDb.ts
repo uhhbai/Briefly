@@ -67,6 +67,58 @@ export async function saveBriefWithBids(spec: StructuredSpec, bids: Bid[]): Prom
   }
 }
 
+type BidRow = {
+  id: string;
+  vendor_name: string;
+  vendor_avatar: string | null;
+  verified: boolean;
+  rating: number;
+  review_count: number;
+  price: number;
+  eta_days: number;
+  message: string;
+  highlights: string[] | null;
+  distance_km: number;
+};
+
+function mapBid(row: BidRow): Bid {
+  return {
+    id: row.id,
+    vendorName: row.vendor_name,
+    vendorAvatar: row.vendor_avatar ?? '',
+    verified: row.verified,
+    rating: Number(row.rating),
+    reviewCount: row.review_count,
+    price: row.price,
+    etaDays: row.eta_days,
+    message: row.message,
+    highlights: row.highlights ?? [],
+    distanceKm: Number(row.distance_km),
+  };
+}
+
+/**
+ * All bids on a brief straight from the DB — the buyer's demo/seed bids plus
+ * any real vendor submissions. Returns [] on any error so the screen can fall
+ * back to the in-memory bids without crashing.
+ */
+export async function loadBidsForBrief(briefId: string): Promise<Bid[]> {
+  try {
+    const { data, error } = await supabase
+      .from('bids')
+      .select(
+        'id, vendor_name, vendor_avatar, verified, rating, review_count, price, eta_days, message, highlights, distance_km'
+      )
+      .eq('brief_id', briefId)
+      .order('price', { ascending: true });
+
+    if (error || !data) return [];
+    return (data as BidRow[]).map(mapBid);
+  } catch {
+    return [];
+  }
+}
+
 export async function saveAcceptedOrder(briefId: string | null, bid: Bid): Promise<string | null> {
   if (!briefId) return null;
 
@@ -75,16 +127,26 @@ export async function saveAcceptedOrder(briefId: string | null, bid: Bid): Promi
       data: { user },
     } = await supabase.auth.getUser();
 
-    const { data: savedBid } = await supabase
-      .from('bids')
-      .select('id')
-      .eq('brief_id', briefId)
-      .eq('vendor_name', bid.vendorName)
-      .eq('price', bid.price)
-      .limit(1)
-      .maybeSingle();
+    // A bid loaded from the DB carries its real UUID; match on that directly.
+    // In-memory demo bids use synthetic ids, so fall back to vendor + price.
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(bid.id);
 
-    const bidId = savedBid?.id as string | undefined;
+    let bidId: string | undefined;
+    if (isUuid) {
+      const { data: byId } = await supabase.from('bids').select('id').eq('id', bid.id).maybeSingle();
+      bidId = byId?.id as string | undefined;
+    }
+    if (!bidId) {
+      const { data: savedBid } = await supabase
+        .from('bids')
+        .select('id')
+        .eq('brief_id', briefId)
+        .eq('vendor_name', bid.vendorName)
+        .eq('price', bid.price)
+        .limit(1)
+        .maybeSingle();
+      bidId = savedBid?.id as string | undefined;
+    }
     if (!bidId) return null;
 
     await supabase.from('bids').update({ status: 'accepted' }).eq('id', bidId);

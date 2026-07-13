@@ -9,11 +9,17 @@ export type BrieflyProfile = {
   role: 'buyer' | 'vendor' | 'admin';
   avatar_url: string | null;
   location: string | null;
+  telegram_chat_id: string | null;
   created_at: string;
   updated_at: string;
 };
 
-type ProfilePatch = Partial<Pick<BrieflyProfile, 'display_name' | 'role' | 'avatar_url' | 'location'>>;
+type ProfilePatch = Partial<
+  Pick<BrieflyProfile, 'display_name' | 'role' | 'avatar_url' | 'location' | 'telegram_chat_id'>
+>;
+
+const PROFILE_COLUMNS =
+  'id, display_name, role, avatar_url, location, telegram_chat_id, created_at, updated_at';
 export type SignupRole = 'buyer' | 'vendor';
 
 type AuthContextValue = {
@@ -53,7 +59,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const { data: existing } = await supabase
       .from('profiles')
-      .select('id, display_name, role, avatar_url, location, created_at, updated_at')
+      .select(PROFILE_COLUMNS)
       .eq('id', user.id)
       .maybeSingle();
 
@@ -71,7 +77,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         role: role ?? roleFromUser(user),
         location: 'Singapore',
       })
-      .select('id, display_name, role, avatar_url, location, created_at, updated_at')
+      .select(PROFILE_COLUMNS)
       .single();
 
     if (error) throw error;
@@ -141,7 +147,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           .from('profiles')
           .update({ ...patch, updated_at: new Date().toISOString() })
           .eq('id', user.id)
-          .select('id, display_name, role, avatar_url, location, created_at, updated_at')
+          .select(PROFILE_COLUMNS)
           .single();
 
         if (error) throw error;

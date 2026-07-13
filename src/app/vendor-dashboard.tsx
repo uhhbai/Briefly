@@ -1,3 +1,4 @@
+import { Image } from 'expo-image';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -10,12 +11,16 @@ import { Divider } from '@/components/ui/Divider';
 import { Icon } from '@/components/ui/Icon';
 import { Screen } from '@/components/ui/Screen';
 import { TextField } from '@/components/ui/TextField';
-import { CATEGORIES } from '@/lib/config';
+import { CATEGORIES, formatPrice } from '@/lib/config';
 import {
+  deleteMyService,
+  loadMyServices,
   loadOpenBriefs,
   loadVendorProfile,
+  saveMyService,
   saveVendorProfileForUser,
   submitVendorBid,
+  type MyService,
   type VendorBrief,
   type VendorProfileRow,
 } from '@/lib/vendorMarketplace';
@@ -23,7 +28,25 @@ import type { CategoryId } from '@/lib/types';
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { haptic } from '@/lib/haptics';
+import { pickAndUploadImage } from '@/lib/upload';
 import { useAuth } from '@/store/AuthContext';
+
+type ServiceForm = {
+  id?: string;
+  title: string;
+  category_id: CategoryId;
+  price: string;
+  etaDays: string;
+  image: string;
+};
+
+const emptyServiceForm: ServiceForm = {
+  title: '',
+  category_id: CATEGORIES[0].id,
+  price: '',
+  etaDays: '7',
+  image: '',
+};
 
 type CategoryFilter = 'all' | CategoryId;
 
@@ -43,12 +66,16 @@ export default function VendorDashboardScreen() {
     category_id: CATEGORIES[0].id,
     bio: '',
     service_area: 'Singapore',
+    logo_url: '' as string,
   });
   const [bidForm, setBidForm] = useState({
     price: '',
     etaDays: '7',
     message: '',
   });
+  const [myServices, setMyServices] = useState<MyService[]>([]);
+  const [serviceForm, setServiceForm] = useState<ServiceForm>(emptyServiceForm);
+  const [uploading, setUploading] = useState<null | 'logo' | 'service'>(null);
 
   const filteredBriefs = useMemo(
     () => (category === 'all' ? briefs : briefs.filter((brief) => brief.category.id === category)),
@@ -71,7 +98,9 @@ export default function VendorDashboardScreen() {
           category_id: nextVendor.category_id,
           bio: nextVendor.bio,
           service_area: nextVendor.service_area,
+          logo_url: nextVendor.logo_url ?? '',
         });
+        setMyServices(await loadMyServices(nextVendor.id));
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not load vendor dashboard.');
@@ -105,12 +134,102 @@ export default function VendorDashboardScreen() {
         category_id: vendorForm.category_id,
         bio: vendorForm.bio,
         service_area: vendorForm.service_area,
+        logo_url: vendorForm.logo_url || null,
       });
       setVendorProfile(next);
       await updateProfile({ role: 'vendor' });
+      setMyServices(await loadMyServices(next.id));
       setNotice('Vendor profile saved.');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not save vendor profile.');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function uploadLogo() {
+    setError(null);
+    setNotice(null);
+    setUploading('logo');
+    try {
+      const url = await pickAndUploadImage('logos');
+      if (url) setVendorForm((form) => ({ ...form, logo_url: url }));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not upload logo.');
+    } finally {
+      setUploading(null);
+    }
+  }
+
+  async function uploadServiceImage() {
+    setError(null);
+    setUploading('service');
+    try {
+      const url = await pickAndUploadImage('services');
+      if (url) setServiceForm((form) => ({ ...form, image: url }));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not upload image.');
+    } finally {
+      setUploading(null);
+    }
+  }
+
+  async function submitService() {
+    if (!vendorProfile) {
+      setError('Save your vendor profile before adding services.');
+      return;
+    }
+    const price = Number.parseInt(serviceForm.price, 10);
+    const etaDays = Number.parseInt(serviceForm.etaDays, 10);
+    if (!serviceForm.title.trim() || !Number.isFinite(price) || price <= 0 || !Number.isFinite(etaDays) || etaDays <= 0) {
+      setError('Add a title, price, and timeline for the service.');
+      return;
+    }
+
+    setSaving(true);
+    setError(null);
+    setNotice(null);
+    try {
+      await saveMyService(vendorProfile.id, {
+        id: serviceForm.id,
+        title: serviceForm.title,
+        category_id: serviceForm.category_id,
+        price_from: price,
+        eta_days: etaDays,
+        image: serviceForm.image,
+      });
+      setServiceForm(emptyServiceForm);
+      setMyServices(await loadMyServices(vendorProfile.id));
+      setNotice(serviceForm.id ? 'Service updated.' : 'Service added to your storefront.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not save the service.');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function editService(service: MyService) {
+    haptic.light();
+    setServiceForm({
+      id: service.id,
+      title: service.title,
+      category_id: service.category_id,
+      price: String(service.price_from),
+      etaDays: String(service.eta_days),
+      image: service.image,
+    });
+  }
+
+  async function removeService(id: string) {
+    if (!vendorProfile) return;
+    setSaving(true);
+    try {
+      await deleteMyService(id);
+      setMyServices((items) => items.filter((s) => s.id !== id));
+      if (serviceForm.id === id) setServiceForm(emptyServiceForm);
+      setNotice('Service removed.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not remove the service.');
     } finally {
       setSaving(false);
     }
@@ -189,6 +308,27 @@ export default function VendorDashboardScreen() {
             </ThemedText>
           </View>
         </View>
+        <View style={styles.logoRow}>
+          <View style={[styles.logoPreview, { borderColor: theme.border, backgroundColor: theme.backgroundElement }]}>
+            {vendorForm.logo_url ? (
+              <Image source={{ uri: vendorForm.logo_url }} style={styles.logoImage} contentFit="cover" />
+            ) : (
+              <Icon name="image" size={22} color={theme.muted} />
+            )}
+          </View>
+          <View style={{ flex: 1, gap: Spacing.two }}>
+            <ThemedText type="small" themeColor="textSecondary">
+              Company logo — shown on your storefront and vendor page.
+            </ThemedText>
+            <Button
+              title={vendorForm.logo_url ? 'Change logo' : 'Upload logo'}
+              variant="secondary"
+              iconRight="upload"
+              loading={uploading === 'logo'}
+              onPress={uploadLogo}
+            />
+          </View>
+        </View>
         <TextField
           label="Business name"
           value={vendorForm.business_name}
@@ -221,6 +361,119 @@ export default function VendorDashboardScreen() {
         <View style={styles.actionRow}>
           <Button title="Save vendor profile" iconRight="check-circle" loading={saving} onPress={saveProfile} style={styles.actionButton} />
           <Button title="Buyer mode" variant="secondary" onPress={switchToBuyer} style={styles.actionButton} />
+        </View>
+      </View>
+
+      <View style={[styles.vendorSetup, { borderColor: theme.border, backgroundColor: theme.card }]}>
+        <View style={styles.panelHeader}>
+          <Icon name="grid" color={theme.tint} />
+          <View style={{ flex: 1 }}>
+            <ThemedText type="subtitle">Your services</ThemedText>
+            <ThemedText type="small" themeColor="textSecondary">
+              Listings buyers can browse and request quotes on.
+            </ThemedText>
+          </View>
+        </View>
+
+        {myServices.length ? (
+          <View style={{ gap: Spacing.three }}>
+            {myServices.map((service) => (
+              <View key={service.id} style={[styles.serviceRow, { borderColor: theme.border }]}>
+                {service.image ? (
+                  <Image source={{ uri: service.image }} style={styles.serviceThumb} contentFit="cover" />
+                ) : (
+                  <View style={[styles.serviceThumb, styles.serviceThumbEmpty, { backgroundColor: theme.backgroundElement }]}>
+                    <Icon name="image" size={18} color={theme.muted} />
+                  </View>
+                )}
+                <View style={{ flex: 1 }}>
+                  <ThemedText type="label" numberOfLines={1}>
+                    {service.title}
+                  </ThemedText>
+                  <ThemedText type="small" themeColor="textSecondary">
+                    {formatPrice(service.price_from)} · ~{service.eta_days} days
+                  </ThemedText>
+                </View>
+                <Pressable onPress={() => editService(service)} hitSlop={8} style={styles.iconBtn}>
+                  <Icon name="edit-2" size={17} color={theme.textSecondary} />
+                </Pressable>
+                <Pressable onPress={() => removeService(service.id)} hitSlop={8} style={styles.iconBtn}>
+                  <Icon name="trash-2" size={17} color={theme.danger} />
+                </Pressable>
+              </View>
+            ))}
+          </View>
+        ) : (
+          <ThemedText type="small" themeColor="textSecondary">
+            {vendorProfile ? 'No services yet — add your first listing below.' : 'Save your vendor profile first, then add services.'}
+          </ThemedText>
+        )}
+
+        <Divider />
+        <ThemedText type="smallBold">{serviceForm.id ? 'Edit service' : 'Add a service'}</ThemedText>
+        <View style={styles.serviceImageRow}>
+          <View style={[styles.serviceFormThumb, { borderColor: theme.border, backgroundColor: theme.backgroundElement }]}>
+            {serviceForm.image ? (
+              <Image source={{ uri: serviceForm.image }} style={styles.serviceThumb} contentFit="cover" />
+            ) : (
+              <Icon name="image" size={20} color={theme.muted} />
+            )}
+          </View>
+          <Button
+            title={serviceForm.image ? 'Change photo' : 'Add photo'}
+            variant="secondary"
+            iconRight="upload"
+            loading={uploading === 'service'}
+            onPress={uploadServiceImage}
+            style={{ flex: 1 }}
+          />
+        </View>
+        <TextField
+          label="Service title"
+          value={serviceForm.title}
+          onChangeText={(title) => setServiceForm((form) => ({ ...form, title }))}
+          placeholder="Custom solid-wood coffee table"
+        />
+        <View style={styles.chips}>
+          {CATEGORIES.map((item) => (
+            <Chip
+              key={item.id}
+              label={item.label}
+              selected={serviceForm.category_id === item.id}
+              onPress={() => setServiceForm((form) => ({ ...form, category_id: item.id }))}
+            />
+          ))}
+        </View>
+        <View style={styles.actionRow}>
+          <TextField
+            label="From (S$)"
+            value={serviceForm.price}
+            onChangeText={(price) => setServiceForm((form) => ({ ...form, price }))}
+            placeholder="480"
+            keyboardType="number-pad"
+            containerStyle={styles.actionButton}
+          />
+          <TextField
+            label="Days"
+            value={serviceForm.etaDays}
+            onChangeText={(etaDays) => setServiceForm((form) => ({ ...form, etaDays }))}
+            placeholder="14"
+            keyboardType="number-pad"
+            containerStyle={styles.actionButton}
+          />
+        </View>
+        <View style={styles.actionRow}>
+          <Button
+            title={serviceForm.id ? 'Update service' : 'Add service'}
+            iconRight="plus-circle"
+            loading={saving}
+            disabled={!vendorProfile}
+            onPress={submitService}
+            style={styles.actionButton}
+          />
+          {serviceForm.id ? (
+            <Button title="Cancel" variant="ghost" onPress={() => setServiceForm(emptyServiceForm)} style={styles.actionButton} />
+          ) : null}
         </View>
       </View>
 
@@ -390,4 +643,36 @@ const styles = StyleSheet.create({
   },
   fieldRow: { flexDirection: 'row', justifyContent: 'space-between', gap: Spacing.three },
   footerActions: { gap: Spacing.two },
+  logoRow: { flexDirection: 'row', gap: Spacing.three, alignItems: 'center' },
+  logoPreview: {
+    width: 72,
+    height: 72,
+    borderRadius: Radius.md,
+    borderWidth: StyleSheet.hairlineWidth,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  logoImage: { width: '100%', height: '100%' },
+  serviceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.three,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: Radius.md,
+    padding: Spacing.two,
+  },
+  serviceThumb: { width: 48, height: 48, borderRadius: Radius.sm },
+  serviceThumbEmpty: { alignItems: 'center', justifyContent: 'center' },
+  iconBtn: { width: 38, height: 38, alignItems: 'center', justifyContent: 'center' },
+  serviceImageRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three },
+  serviceFormThumb: {
+    width: 56,
+    height: 56,
+    borderRadius: Radius.md,
+    borderWidth: StyleSheet.hairlineWidth,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
 });

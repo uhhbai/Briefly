@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, Pressable, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
@@ -12,21 +12,48 @@ import { Rating } from '@/components/ui/Rating';
 import { Screen } from '@/components/ui/Screen';
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import { saveAcceptedOrder } from '@/lib/briefsDb';
+import { loadBidsForBrief, saveAcceptedOrder } from '@/lib/briefsDb';
 import { formatPrice } from '@/lib/config';
 import { haptic } from '@/lib/haptics';
 import { createCheckoutSession, openCheckout } from '@/lib/payments';
 import type { Bid } from '@/lib/types';
 import { useBrief } from '@/store/BriefContext';
 
+/** Append vendor bids not already represented (by vendor + price) in the base set. */
+function mergeBids(base: Bid[], incoming: Bid[]): Bid[] {
+  const seen = new Set(base.map((b) => `${b.vendorName}__${b.price}`));
+  const extra = incoming.filter((b) => !seen.has(`${b.vendorName}__${b.price}`));
+  return extra.length ? [...base, ...extra] : base;
+}
+
 export default function BidsScreen() {
-  const { spec, bids, selectedBidId, selectBid, bookSelectedBid, remoteBriefId } = useBrief();
+  const { spec, bids, selectedBidId, selectBid, bookSelectedBid, remoteBriefId, setBids } = useBrief();
   const sorted = useMemo(() => [...bids].sort((a, b) => a.price - b.price), [bids]);
   const cheapestId = sorted[0]?.id;
   const topRatedId = useMemo(() => [...bids].sort((a, b) => b.rating - a.rating)[0]?.id, [bids]);
   const selected = bids.find((b) => b.id === selectedBidId) ?? null;
   const [confirming, setConfirming] = useState(false);
   const [accepting, setAccepting] = useState(false);
+  const [checking, setChecking] = useState(false);
+
+  const refreshVendorBids = useCallback(async () => {
+    if (!remoteBriefId) return;
+    setChecking(true);
+    try {
+      const dbBids = await loadBidsForBrief(remoteBriefId);
+      const merged = mergeBids(bids, dbBids);
+      if (merged.length !== bids.length) setBids(merged);
+    } finally {
+      setChecking(false);
+    }
+  }, [bids, remoteBriefId, setBids]);
+
+  // Pull in any real vendor bids submitted against this brief.
+  useEffect(() => {
+    const handle = setTimeout(() => void refreshVendorBids(), 0);
+    return () => clearTimeout(handle);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [remoteBriefId]);
 
   function openConfirm() {
     if (!selected) return;
@@ -78,13 +105,24 @@ export default function BidsScreen() {
       title="Compare offers"
       subtitle={`${bids.length} vendors responded${spec ? ` - ${spec.title}` : ''}`}
       footer={
-        <Button
-          title={selected ? `Accept - ${formatPrice(selected.price)}` : 'Select a bid to continue'}
-          iconRight={selected ? 'arrow-right' : undefined}
-          disabled={!selected || accepting}
-          loading={accepting}
-          onPress={openConfirm}
-        />
+        <View style={{ gap: Spacing.two }}>
+          <Button
+            title={selected ? `Accept - ${formatPrice(selected.price)}` : 'Select a bid to continue'}
+            iconRight={selected ? 'arrow-right' : undefined}
+            disabled={!selected || accepting}
+            loading={accepting}
+            onPress={openConfirm}
+          />
+          {remoteBriefId ? (
+            <Button
+              title="Check for new bids"
+              variant="ghost"
+              iconRight="refresh-cw"
+              loading={checking}
+              onPress={refreshVendorBids}
+            />
+          ) : null}
+        </View>
       }>
       {selected ? (
         <ConfirmDialog

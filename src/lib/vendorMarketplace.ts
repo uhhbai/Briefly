@@ -9,6 +9,18 @@ export type VendorProfileRow = {
   bio: string;
   service_area: string;
   verified: boolean;
+  logo_url: string | null;
+};
+
+/** A service listing owned by the signed-in vendor. */
+export type MyService = {
+  id: string;
+  title: string;
+  category_id: CategoryId;
+  price_from: number;
+  eta_days: number;
+  emoji: string;
+  image: string;
 };
 
 export type VendorBriefField = {
@@ -77,10 +89,12 @@ export async function loadOpenBriefs(): Promise<VendorBrief[]> {
   return ((data ?? []) as BriefRow[]).map(mapBrief);
 }
 
+const VENDOR_PROFILE_COLUMNS = 'id, business_name, category_id, bio, service_area, verified, logo_url';
+
 export async function loadVendorProfile(userId: string): Promise<VendorProfileRow | null> {
   const { data, error } = await supabase
     .from('vendor_profiles')
-    .select('id, business_name, category_id, bio, service_area, verified')
+    .select(VENDOR_PROFILE_COLUMNS)
     .eq('profile_id', userId)
     .maybeSingle();
 
@@ -95,7 +109,9 @@ export async function loadVendorProfile(userId: string): Promise<VendorProfileRo
 
 export async function saveVendorProfileForUser(
   userId: string,
-  input: Pick<VendorProfileRow, 'business_name' | 'category_id' | 'bio' | 'service_area'>
+  input: Pick<VendorProfileRow, 'business_name' | 'category_id' | 'bio' | 'service_area'> & {
+    logo_url?: string | null;
+  }
 ): Promise<VendorProfileRow> {
   const { data, error } = await supabase
     .from('vendor_profiles')
@@ -106,11 +122,12 @@ export async function saveVendorProfileForUser(
         category_id: input.category_id,
         bio: input.bio.trim(),
         service_area: input.service_area.trim() || 'Singapore',
+        logo_url: input.logo_url ?? null,
         updated_at: new Date().toISOString(),
       },
       { onConflict: 'profile_id' }
     )
-    .select('id, business_name, category_id, bio, service_area, verified')
+    .select(VENDOR_PROFILE_COLUMNS)
     .single();
 
   if (error) throw error;
@@ -118,6 +135,62 @@ export async function saveVendorProfileForUser(
     ...(data as Omit<VendorProfileRow, 'category_id'> & { category_id: string }),
     category_id: normalizeCategoryId((data as { category_id: string }).category_id),
   };
+}
+
+// --- Vendor-owned service listings ----------------------------------------
+
+const MY_SERVICE_COLUMNS = 'id, title, category_id, price_from, eta_days, emoji, image';
+
+export async function loadMyServices(vendorProfileId: string): Promise<MyService[]> {
+  const { data, error } = await supabase
+    .from('services')
+    .select(MY_SERVICE_COLUMNS)
+    .eq('vendor_profile_id', vendorProfileId)
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+  return ((data ?? []) as (MyService & { category_id: string })[]).map((row) => ({
+    ...row,
+    category_id: normalizeCategoryId(row.category_id),
+  }));
+}
+
+export async function saveMyService(
+  vendorProfileId: string,
+  input: {
+    id?: string;
+    title: string;
+    category_id: CategoryId;
+    price_from: number;
+    eta_days: number;
+    image: string;
+  }
+): Promise<void> {
+  const category = getCategory(input.category_id);
+  const row = {
+    title: input.title.trim(),
+    category_id: input.category_id,
+    vendor_profile_id: vendorProfileId,
+    emoji: category.emoji,
+    price_from: input.price_from,
+    rating: 0,
+    review_count: 0,
+    eta_days: input.eta_days,
+    gradient_from: category.gradient[0],
+    gradient_to: category.gradient[1],
+    image: input.image || category.image,
+  };
+
+  const { error } = input.id
+    ? await supabase.from('services').update(row).eq('id', input.id)
+    : await supabase.from('services').insert(row);
+
+  if (error) throw error;
+}
+
+export async function deleteMyService(id: string): Promise<void> {
+  const { error } = await supabase.from('services').delete().eq('id', id);
+  if (error) throw error;
 }
 
 export async function submitVendorBid({
@@ -150,4 +223,13 @@ export async function submitVendorBid({
   });
 
   if (error) throw error;
+
+  // Best-effort: notify the buyer over Telegram. Never fails the bid.
+  try {
+    await supabase.functions.invoke('notify-bid', {
+      body: { briefId, vendorName: profile.business_name, price },
+    });
+  } catch {
+    // ignore — notification is not critical to submitting a bid
+  }
 }
