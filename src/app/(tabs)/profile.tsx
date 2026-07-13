@@ -11,12 +11,12 @@ import { Divider } from '@/components/ui/Divider';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { LogoMark } from '@/components/ui/Logo';
 import { TextField } from '@/components/ui/TextField';
+import { Radius, Spacing } from '@/constants/theme';
+import { useTheme } from '@/hooks/use-theme';
 import { CATEGORIES, formatPrice } from '@/lib/config';
 import { haptic } from '@/lib/haptics';
 import { createCheckoutSession, openCheckout } from '@/lib/payments';
 import { supabase } from '@/lib/supabase';
-import { Radius, Spacing } from '@/constants/theme';
-import { useTheme } from '@/hooks/use-theme';
 import { useAuth } from '@/store/AuthContext';
 import { useBrief } from '@/store/BriefContext';
 

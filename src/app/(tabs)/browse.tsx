@@ -4,8 +4,8 @@ import { ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import Animated, { FadeInDown, LinearTransition } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { ThemedText } from '@/components/themed-text';
 import { ServiceCard, VendorCard } from '@/components/marketplace';
+import { ThemedText } from '@/components/themed-text';
 import { Canvas } from '@/components/ui/Canvas';
 import { Chip } from '@/components/ui/Chip';
 import { Divider } from '@/components/ui/Divider';
@@ -13,7 +13,6 @@ import { Icon } from '@/components/ui/Icon';
 import { Radius, Spacing, Type } from '@/constants/theme';
 import { useCatalog, useFilteredCatalog } from '@/hooks/use-catalog';
 import { useTheme } from '@/hooks/use-theme';
-import { CATEGORIES } from '@/lib/config';
 import type { CategoryId } from '@/lib/types';
 
 export default function BrowseScreen() {
@@ -31,7 +30,6 @@ export default function BrowseScreen() {
 
   const { vendors, services } = useFilteredCatalog(catalog, query, activeCat);
 
-  const cats = CATEGORIES.filter((c) => c.id !== 'other');
   const empty = vendors.length === 0 && services.length === 0;
 
   return (

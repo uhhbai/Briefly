@@ -174,6 +174,10 @@ export function LivingBackground() {
       {ribbons.map((ribbon, i) => (
         <Ribbon key={i} {...ribbon} />
       ))}
+      <LinearGradient
+        colors={scheme === 'dark' ? ['rgba(7,17,31,0)', '#07111F'] : ['rgba(245,248,255,0)', '#F5F8FF']}
+        style={styles.fade}
+      />
     </View>
   );
 }
